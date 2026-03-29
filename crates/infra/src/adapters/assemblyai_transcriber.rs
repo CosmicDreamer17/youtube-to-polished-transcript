@@ -124,9 +124,7 @@ impl AssemblyAITranscriber {
         })?;
 
         let resp: TranscriptionResponse = serde_json::from_str(&body).map_err(|e| {
-            VoxtractError::Transcription(format!(
-                "Submit response parse failed: {e}\nBody: {body}"
-            ))
+            VoxtractError::Transcription(format!("Submit response parse failed: {e}\nBody: {body}"))
         })?;
 
         Ok(resp.id)
