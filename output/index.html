@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube to Polished Transcript — Inventory</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3345;
+    --text: #e4e6ef;
+    --text-dim: #8b8fa3;
+    --accent: #6c7bff;
+    --accent-soft: rgba(108,123,255,0.12);
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 2rem; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+  .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+  .stat-value { font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem; }
+  .stat-value.cost { color: var(--green); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  thead th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { color: var(--accent); }
+  tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--accent-soft); }
+  .batch-header {
+    background: var(--surface2) !important;
+  }
+  .batch-header td {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--accent);
+    padding: 0.5rem 1rem;
+  }
+  .batch-indent td:first-child { padding-left: 2rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .speakers { color: var(--text-dim); font-size: 0.8rem; }
+  .primary { color: var(--accent); font-weight: 500; }
+  .format-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .meta {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-dim);
+  }
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    table { font-size: 0.8rem; }
+    thead th, tbody td { padding: 0.5rem; }
+  }
+</style>
+</head>
+<body>
+<h1>YouTube to Polished Transcript</h1>
+<p class="subtitle">Transcript Inventory — 2026-03-29 21:46 UTC</p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-label">Videos</div>
+    <div class="stat-value">14</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total Duration</div>
+    <div class="stat-value">6h 40m 07s</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">AssemblyAI Cost</div>
+    <div class="stat-value cost">$1.93</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Claude Cost</div>
+    <div class="stat-value cost">$1.78</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total Cost</div>
+    <div class="stat-value cost">$3.71</div>
+  </div>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th data-sort="0">Title</th>
+  <th data-sort="1">Speakers</th>
+  <th data-sort="2">Duration</th>
+  <th data-sort="3">Date</th>
+  <th data-sort="4">Cost</th>
+  <th data-sort="5">Format</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr class="batch-header"><td colspan="7">Batch 90994a34… — 4 videos, 27m 02s, $0.23</td></tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/odYNMCYRJS8" target="_blank" rel="noopener">Will AI replace programmers? | Lex Fridman Podcast</a></td>
+  <td class="speakers">Lex Fridman, Nathan Lambert, Sebastian Raschka</td>
+  <td>7m 01s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.03 | Claude: $0.03 (2169 in / 1689 out tokens)">$0.07</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="will-ai-replace-programmers-lex-fridman-podcast.md">will-ai-replace-programmers-lex-fridman-podcast.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/ZB4AuwF66XY" target="_blank" rel="noopener">Worst video game quest ever created: World of Warcraft's Green Hills of Stranglethorn | Jeff Kaplan</a></td>
+  <td class="speakers">Lex Fridman, Jeff Kaplan</td>
+  <td>6m 01s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.03 | Claude: $0.02 (1561 in / 1107 out tokens)">$0.05</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md">worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/GMNbZKqQJ2A" target="_blank" rel="noopener">The greatest first-person shooter of all time | Jeff Kaplan and Lex Fridman</a></td>
+  <td class="speakers">Lex Fridman, Jeff Kaplan</td>
+  <td>5m 26s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.03 | Claude: $0.02 (1621 in / 1181 out tokens)">$0.05</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="the-greatest-first-person-shooter-of-all-time-jeff-kaplan-and-lex-fridman.md">the-greatest-first-person-shooter-of-all-time-jeff-kaplan-and-lex-fridman.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/LpkmUa-CqaE" target="_blank" rel="noopener">Why China is successful in tech - NVIDIA CEO explains | Jensen Huang and Lex Fridman</a></td>
+  <td class="speakers">Lex Fridman, Jensen Huang</td>
+  <td>8m 34s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.04 | Claude: $0.03 (1894 in / 1523 out tokens)">$0.07</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md">why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md</a></td>
+</tr><tr class="batch-header"><td colspan="7">Batch f6960b06… — 2 videos, 5h 28m 00s, $2.99</td></tr><tr class="batch-indent">
+  <td><a href="https://www.youtube.com/watch?v=7j1t3UZA1TY" target="_blank" rel="noopener">MCP vs API: Simplifying AI Agent Integration with External Data</a></td>
+  <td class="speakers">Lex Fridman</td>
+  <td>13m 10s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.06 | Claude: $0.04 (2586 in / 2199 out tokens)">$0.10</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md">mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://www.youtube.com/watch?v=I845O57ZSy4" target="_blank" rel="noopener">John Carmack: Doom, Quake, VR, AGI, Programming, Video Games, and Rockets | Lex Fridman Podcast #309</a></td>
+  <td class="speakers">Lex Fridman, John Carmack</td>
+  <td>5h 14m 50s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $1.52 | Claude: $1.36 (95788 in / 71446 out tokens)">$2.88</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="john-carmack-doom-quake-vr-agi-programming-video-games-and-rockets-lex-fridman-p.md">john-carmack-doom-quake-vr-agi-programming-video-games-and-rockets-lex-fridman-p.md</a></td>
+</tr><tr class="batch-header"><td colspan="7">Batch f435058b… — 4 videos, 34m 46s, $0.29</td></tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/odYNMCYRJS8" target="_blank" rel="noopener">Will AI replace programmers? | Lex Fridman Podcast</a></td>
+  <td class="speakers">Lex Fridman, Nathan Lambert, Sebastian Raschka</td>
+  <td>7m 01s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.03 | Claude: $0.03 (2149 in / 1670 out tokens)">$0.07</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="will-ai-replace-programmers-lex-fridman-podcast.md">will-ai-replace-programmers-lex-fridman-podcast.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/ZB4AuwF66XY" target="_blank" rel="noopener">Worst video game quest ever created: World of Warcraft's Green Hills of Stranglethorn | Jeff Kaplan</a></td>
+  <td class="speakers">Lex Fridman, Jeff Kaplan</td>
+  <td>6m 01s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.03 | Claude: $0.02 (1548 in / 1115 out tokens)">$0.05</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md">worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://youtu.be/LpkmUa-CqaE" target="_blank" rel="noopener">Why China is successful in tech - NVIDIA CEO explains | Jensen Huang and Lex Fridman</a></td>
+  <td class="speakers">Lex Fridman, Jensen Huang</td>
+  <td>8m 34s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.04 | Claude: $0.03 (1895 in / 1524 out tokens)">$0.07</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md">why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md</a></td>
+</tr><tr class="batch-indent">
+  <td><a href="https://www.youtube.com/watch?v=7j1t3UZA1TY" target="_blank" rel="noopener">MCP vs API: Simplifying AI Agent Integration with External Data</a></td>
+  <td class="speakers">Lex Fridman</td>
+  <td>13m 10s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.06 | Claude: $0.04 (2588 in / 2201 out tokens)">$0.10</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md">mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md</a></td>
+</tr><tr>
+  <td><a href="https://www.youtube.com/watch?v=jNQXAC9IVRw" target="_blank" rel="noopener">Me at the zoo</a></td>
+  <td class="speakers"><span class="primary">Jawed</span></td>
+  <td>0m 19s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.0015 | Claude: $0.0021 (412 in / 59 out tokens)">$0.0037</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="me-at-the-zoo.md">me-at-the-zoo.md</a></td>
+</tr><tr>
+  <td><a href="https://www.youtube.com/watch?v=JnfBXjWm7hc" target="_blank" rel="noopener">Try something new for 30 days | Matt Cutts</a></td>
+  <td class="speakers"><span class="primary">Matt Cutts</span></td>
+  <td>3m 00s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.01 | Claude: $0.04 (3000 in / 2400 out tokens)">$0.06</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="try-something-new-for-30-days-matt-cutts.md">try-something-new-for-30-days-matt-cutts.md</a></td>
+</tr><tr>
+  <td><a href="https://www.youtube.com/watch?v=w8aOZ8rBZ-E" target="_blank" rel="noopener">w8aOZ8rBZ-E</a></td>
+  <td class="speakers">Tyler, <span class="primary">Jim</span>, Contessa</td>
+  <td>4m 00s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.02 | Claude: $0.06 (4000 in / 3200 out tokens)">$0.08</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="w8aoz8rbz-e.md">w8aoz8rbz-e.md</a></td>
+</tr><tr>
+  <td><a href="https://www.youtube.com/watch?v=JnfBXjWm7hc" target="_blank" rel="noopener">JnfBXjWm7hc</a></td>
+  <td class="speakers"><span class="primary">Matt Cutts</span></td>
+  <td>3m 00s</td>
+  <td>2026-03-29</td>
+  <td title="AssemblyAI: $0.01 | Claude: $0.04 (3000 in / 2400 out tokens)">$0.06</td>
+  <td><span class="format-badge">markdown</span></td>
+  <td><a href="jnfbxjwm7hc.md">jnfbxjwm7hc.md</a></td>
+</tr>
+</tbody>
+</table>
+
+<p class="meta">Generated by <a href="https://github.com/CosmicDreamer17/youtube-to-polished-transcript">yt2pt</a> — manifest.json available in the same directory for programmatic access</p>
+
+<script>
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const table = th.closest('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr:not(.batch-header)'));
+    const idx = parseInt(th.dataset.sort);
+    const asc = th.dataset.dir !== 'asc';
+    th.dataset.dir = asc ? 'asc' : 'desc';
+    rows.sort((a, b) => {
+      const av = a.cells[idx]?.textContent.trim() || '';
+      const bv = b.cells[idx]?.textContent.trim() || '';
+      const an = parseFloat(av.replace(/[^0-9.\-]/g, ''));
+      const bn = parseFloat(bv.replace(/[^0-9.\-]/g, ''));
+      if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+      return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  });
+});
+</script>
+</body>
+</html>

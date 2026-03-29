@@ -89,6 +89,7 @@ mod tests {
             .unwrap(),
             speakers: vec![Speaker::new("Speaker A", "Alice", true)],
             utterances: vec![Utterance::new("Speaker A", "Hello", 0.0, 3.5)],
+            context: None,
         };
         let path = repo.save(&transcript).await.unwrap();
         assert!(path.exists());

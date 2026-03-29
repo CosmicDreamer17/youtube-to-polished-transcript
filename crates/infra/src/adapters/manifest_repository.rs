@@ -15,6 +15,20 @@ impl FileManifestRepository {
         }
     }
 
+    pub async fn exists(&self, video_id: &str) -> bool {
+        let manifest_path = self.output_dir.join("manifest.json");
+        if !manifest_path.exists() {
+            return false;
+        }
+
+        let content = tokio::fs::read_to_string(&manifest_path)
+            .await
+            .unwrap_or_else(|_| "[]".to_string());
+        let entries: Vec<ManifestEntry> = serde_json::from_str(&content).unwrap_or_default();
+
+        entries.iter().any(|e| e.video_id == video_id)
+    }
+
     pub async fn append(&self, entry: &ManifestEntry) -> Result<(), Yt2ptError> {
         tokio::fs::create_dir_all(&self.output_dir)
             .await
@@ -78,47 +92,11 @@ fn render_html(entries: &[ManifestEntry]) -> String {
     let total_cost = total_assemblyai + total_claude;
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
 
-    // Group by batch
-    let mut batch_groups: Vec<(&str, Vec<&ManifestEntry>)> = Vec::new();
-    let mut singles: Vec<&ManifestEntry> = Vec::new();
+    let mut sorted_entries = entries.to_vec();
+    // Default sort: newest first
+    sorted_entries.sort_by(|a, b| b.date_transcribed.cmp(&a.date_transcribed));
 
-    for entry in entries {
-        if let Some(ref batch_id) = entry.batch_id {
-            if let Some(group) = batch_groups.iter_mut().find(|(id, _)| id == batch_id) {
-                group.1.push(entry);
-            } else {
-                batch_groups.push((batch_id, vec![entry]));
-            }
-        } else {
-            singles.push(entry);
-        }
-    }
-
-    let mut rows = String::new();
-
-    // Render batch groups
-    for (batch_id, group) in &batch_groups {
-        let batch_cost: f64 = group
-            .iter()
-            .map(|e| e.assemblyai_cost_usd + e.claude_cost_usd)
-            .sum();
-        let batch_dur: f64 = group.iter().map(|e| e.duration_seconds).sum();
-        let short_id = &batch_id[..8.min(batch_id.len())];
-        rows.push_str(&format!(
-            r#"<tr class="batch-header"><td colspan="7">Batch {short_id}… — {} videos, {}, {}</td></tr>"#,
-            group.len(),
-            format_duration(batch_dur),
-            format_cost(batch_cost),
-        ));
-        for e in group {
-            rows.push_str(&render_row(e, true));
-        }
-    }
-
-    // Render singles
-    for e in &singles {
-        rows.push_str(&render_row(e, false));
-    }
+    let rows: String = sorted_entries.iter().map(|e| render_row(e)).collect();
 
     format!(
         r##"<!DOCTYPE html>
@@ -205,16 +183,6 @@ fn render_html(entries: &[ManifestEntry]) -> String {
   }}
   tbody tr:last-child td {{ border-bottom: none; }}
   tbody tr:hover {{ background: var(--accent-soft); }}
-  .batch-header {{
-    background: var(--surface2) !important;
-  }}
-  .batch-header td {{
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--accent);
-    padding: 0.5rem 1rem;
-  }}
-  .batch-indent td:first-child {{ padding-left: 2rem; }}
   a {{ color: var(--accent); text-decoration: none; }}
   a:hover {{ text-decoration: underline; }}
   .speakers {{ color: var(--text-dim); font-size: 0.8rem; }}
@@ -228,6 +196,16 @@ fn render_html(entries: &[ManifestEntry]) -> String {
     border-radius: 4px;
     background: var(--accent-soft);
     color: var(--accent);
+  }}
+  .batch-badge {{
+    display: inline-block;
+    font-size: 0.65rem;
+    font-family: monospace;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
   }}
   .meta {{
     margin-top: 2rem;
@@ -284,15 +262,15 @@ document.querySelectorAll('thead th[data-sort]').forEach(th => {{
   th.addEventListener('click', () => {{
     const table = th.closest('table');
     const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr:not(.batch-header)'));
+    const rows = Array.from(tbody.querySelectorAll('tr'));
     const idx = parseInt(th.dataset.sort);
     const asc = th.dataset.dir !== 'asc';
     th.dataset.dir = asc ? 'asc' : 'desc';
     rows.sort((a, b) => {{
       const av = a.cells[idx]?.textContent.trim() || '';
       const bv = b.cells[idx]?.textContent.trim() || '';
-      const an = parseFloat(av.replace(/[^0-9.\-]/g, ''));
-      const bn = parseFloat(bv.replace(/[^0-9.\-]/g, ''));
+      const an = parseFloat(av.replace(/[^0-9.\\-]/g, ''));
+      const bn = parseFloat(bv.replace(/[^0-9.\\-]/g, ''));
       if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
       return asc ? av.localeCompare(bv) : bv.localeCompare(av);
     }});
@@ -302,6 +280,8 @@ document.querySelectorAll('thead th[data-sort]').forEach(th => {{
 </script>
 </body>
 </html>"##,
+        generated_at = generated_at,
+        total_videos = total_videos,
         total_duration_fmt = format_duration(total_duration),
         total_assemblyai_fmt = format_cost(total_assemblyai),
         total_claude_fmt = format_cost(total_claude),
@@ -319,19 +299,21 @@ document.querySelectorAll('thead th[data-sort]').forEach(th => {{
   <th data-sort="3">Date</th>
   <th data-sort="4">Cost</th>
   <th data-sort="5">Format</th>
+  <th data-sort="6">Batch</th>
   <th>File</th>
 </tr>
 </thead>
 <tbody>
 {rows}
 </tbody>
-</table>"#
+</table>"#,
+                rows = rows
             )
         },
     )
 }
 
-fn render_row(entry: &ManifestEntry, in_batch: bool) -> String {
+fn render_row(entry: &ManifestEntry) -> String {
     let speakers_html: Vec<String> = entry
         .speakers
         .iter()
@@ -353,20 +335,21 @@ fn render_row(entry: &ManifestEntry, in_batch: bool) -> String {
         entry.claude_output_tokens,
     );
 
-    let batch_class = if in_batch {
-        " class=\"batch-indent\""
+    let batch_html = if let Some(ref bid) = entry.batch_id {
+        format!(r#"<span class="batch-badge" title="{bid}">{}</span>"#, &bid[..8.min(bid.len())])
     } else {
-        ""
+        "-".to_string()
     };
 
     format!(
-        r#"<tr{batch_class}>
+        r#"<tr>
   <td><a href="{url}" target="_blank" rel="noopener">{title}</a></td>
   <td class="speakers">{speakers}</td>
   <td>{duration}</td>
   <td>{date}</td>
   <td title="{cost_title}">{cost}</td>
   <td><span class="format-badge">{format}</span></td>
+  <td>{batch}</td>
   <td><a href="{file}">{file}</a></td>
 </tr>"#,
         url = html_escape(&entry.youtube_url),
@@ -376,6 +359,7 @@ fn render_row(entry: &ManifestEntry, in_batch: bool) -> String {
         date = html_escape(&entry.date_transcribed),
         cost = format_cost(total_cost),
         format = html_escape(&entry.output_format),
+        batch = batch_html,
         file = html_escape(&entry.output_file),
     )
 }

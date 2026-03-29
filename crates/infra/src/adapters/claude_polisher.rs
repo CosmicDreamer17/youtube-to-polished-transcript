@@ -140,7 +140,12 @@ impl ClaudePolisher {
             })
             .collect();
 
-        let user_content = lines.join("\n");
+        let mut user_content = String::new();
+        if let Some(ref context) = transcript.context {
+            user_content.push_str(&format!("CONTEXT FOR THIS TRANSCRIPT:\n{context}\n\n"));
+        }
+        user_content.push_str("TRANSCRIPT TO EDIT:\n");
+        user_content.push_str(&lines.join("\n"));
 
         let request = MessageRequest {
             model: self.model.clone(),
@@ -258,6 +263,7 @@ impl Polisher for ClaudePolisher {
                 source: transcript.source.clone(),
                 speakers: transcript.speakers.clone(),
                 utterances: polished_utterances,
+                context: transcript.context.clone(),
             },
             input_tokens: total_input_tokens,
             output_tokens: total_output_tokens,

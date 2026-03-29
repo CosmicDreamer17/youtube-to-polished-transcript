@@ -86,9 +86,11 @@ where
         url: &str,
         speaker_map: &HashMap<String, String>,
         primary_speaker_label: Option<&str>,
+        context: Option<String>,
     ) -> Result<PipelineResult, Yt2ptError> {
         let raw = self.extract_and_transcribe(url).await?;
-        let transcript = speaker_mapping::apply_mapping(&raw, speaker_map, primary_speaker_label);
+        let transcript =
+            speaker_mapping::apply_mapping(&raw, speaker_map, primary_speaker_label, context);
         self.polish_and_save(&transcript).await
     }
 }
@@ -101,7 +103,9 @@ mod tests {
     use yt2pt_domain::models::transcript::{PolishResult, Transcript};
     use yt2pt_domain::models::utterance::Utterance;
 
+    use async_trait::async_trait;
     struct MockExtractor;
+    #[async_trait]
     impl AudioExtractor for MockExtractor {
         async fn extract(&self, _source: &VideoSource) -> Result<AudioFile, Yt2ptError> {
             Ok(AudioFile {
@@ -180,6 +184,7 @@ mod tests {
                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 &names,
                 Some("Speaker A"),
+                None,
             )
             .await
             .unwrap();

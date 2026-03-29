@@ -39,11 +39,12 @@ pub fn get_speaker_stats(raw: &RawTranscript) -> Vec<(String, f64)> {
     times
 }
 
-/// Convert RawTranscript to Transcript with named speakers.
+/// Convert RawTranscript to Transcript with named speakers and optional context.
 pub fn apply_mapping(
     raw: &RawTranscript,
     name_map: &HashMap<String, String>,
     primary_label: Option<&str>,
+    context: Option<String>,
 ) -> Transcript {
     let speakers: Vec<Speaker> = raw
         .speaker_labels()
@@ -59,6 +60,7 @@ pub fn apply_mapping(
         source: raw.source.clone(),
         speakers,
         utterances: raw.utterances.clone(),
+        context,
     }
 }
 
@@ -107,7 +109,7 @@ mod tests {
         name_map.insert("Speaker A".to_string(), "Alice".to_string());
         name_map.insert("Speaker B".to_string(), "Bob".to_string());
 
-        let transcript = apply_mapping(&raw, &name_map, Some("Speaker A"));
+        let transcript = apply_mapping(&raw, &name_map, Some("Speaker A"), None);
         assert_eq!(transcript.speakers.len(), 2);
         assert_eq!(transcript.speakers[0].name(), "Alice");
         assert!(transcript.speakers[0].is_primary);
@@ -119,7 +121,7 @@ mod tests {
     #[test]
     fn test_apply_mapping_empty_names() {
         let raw = make_raw();
-        let transcript = apply_mapping(&raw, &HashMap::new(), None);
+        let transcript = apply_mapping(&raw, &HashMap::new(), None, None);
         assert_eq!(transcript.speakers[0].name(), "Speaker A");
         assert!(!transcript.speakers[0].is_primary);
     }

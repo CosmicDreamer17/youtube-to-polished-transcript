@@ -1,0 +1,344 @@
+[
+  {
+    "video_title": "Me at the zoo",
+    "youtube_url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "video_id": "jNQXAC9IVRw",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Jawed"
+      }
+    ],
+    "primary_speaker": "Jawed",
+    "duration_seconds": 19.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.0015305555555555554,
+    "claude_cost_usd": 0.0021209999999999996,
+    "claude_input_tokens": 412,
+    "claude_output_tokens": 59,
+    "output_file": "me-at-the-zoo.md",
+    "output_format": "markdown",
+    "batch_id": null
+  },
+  {
+    "video_title": "Try something new for 30 days | Matt Cutts",
+    "youtube_url": "https://www.youtube.com/watch?v=JnfBXjWm7hc",
+    "video_id": "JnfBXjWm7hc",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Matt Cutts"
+      }
+    ],
+    "primary_speaker": "Matt Cutts",
+    "duration_seconds": 180.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.0145,
+    "claude_cost_usd": 0.045,
+    "claude_input_tokens": 3000,
+    "claude_output_tokens": 2400,
+    "output_file": "try-something-new-for-30-days-matt-cutts.md",
+    "output_format": "markdown",
+    "batch_id": null
+  },
+  {
+    "video_title": "w8aOZ8rBZ-E",
+    "youtube_url": "https://www.youtube.com/watch?v=w8aOZ8rBZ-E",
+    "video_id": "w8aOZ8rBZ-E",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Tyler"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jim"
+      },
+      {
+        "label": "Speaker C",
+        "name": "Contessa"
+      }
+    ],
+    "primary_speaker": "Jim",
+    "duration_seconds": 240.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.01933333333333333,
+    "claude_cost_usd": 0.06,
+    "claude_input_tokens": 4000,
+    "claude_output_tokens": 3200,
+    "output_file": "w8aoz8rbz-e.md",
+    "output_format": "markdown",
+    "batch_id": null
+  },
+  {
+    "video_title": "JnfBXjWm7hc",
+    "youtube_url": "https://www.youtube.com/watch?v=JnfBXjWm7hc",
+    "video_id": "JnfBXjWm7hc",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Matt Cutts"
+      }
+    ],
+    "primary_speaker": "Matt Cutts",
+    "duration_seconds": 180.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.0145,
+    "claude_cost_usd": 0.045,
+    "claude_input_tokens": 3000,
+    "claude_output_tokens": 2400,
+    "output_file": "jnfbxjwm7hc.md",
+    "output_format": "markdown",
+    "batch_id": null
+  },
+  {
+    "video_title": "Will AI replace programmers? | Lex Fridman Podcast",
+    "youtube_url": "https://youtu.be/odYNMCYRJS8",
+    "video_id": "odYNMCYRJS8",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Nathan Lambert"
+      },
+      {
+        "label": "Speaker C",
+        "name": "Sebastian Raschka"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 421.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.03391388888888889,
+    "claude_cost_usd": 0.031842,
+    "claude_input_tokens": 2169,
+    "claude_output_tokens": 1689,
+    "output_file": "will-ai-replace-programmers-lex-fridman-podcast.md",
+    "output_format": "markdown",
+    "batch_id": "90994a34-22b8-44f1-b149-0a70a8793518"
+  },
+  {
+    "video_title": "Worst video game quest ever created: World of Warcraft's Green Hills of Stranglethorn | Jeff Kaplan",
+    "youtube_url": "https://youtu.be/ZB4AuwF66XY",
+    "video_id": "ZB4AuwF66XY",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jeff Kaplan"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 361.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.02908055555555555,
+    "claude_cost_usd": 0.021288,
+    "claude_input_tokens": 1561,
+    "claude_output_tokens": 1107,
+    "output_file": "worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md",
+    "output_format": "markdown",
+    "batch_id": "90994a34-22b8-44f1-b149-0a70a8793518"
+  },
+  {
+    "video_title": "The greatest first-person shooter of all time | Jeff Kaplan and Lex Fridman",
+    "youtube_url": "https://youtu.be/GMNbZKqQJ2A",
+    "video_id": "GMNbZKqQJ2A",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jeff Kaplan"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 326.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.02626111111111111,
+    "claude_cost_usd": 0.022577999999999997,
+    "claude_input_tokens": 1621,
+    "claude_output_tokens": 1181,
+    "output_file": "the-greatest-first-person-shooter-of-all-time-jeff-kaplan-and-lex-fridman.md",
+    "output_format": "markdown",
+    "batch_id": "90994a34-22b8-44f1-b149-0a70a8793518"
+  },
+  {
+    "video_title": "Why China is successful in tech - NVIDIA CEO explains | Jensen Huang and Lex Fridman",
+    "youtube_url": "https://youtu.be/LpkmUa-CqaE",
+    "video_id": "LpkmUa-CqaE",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jensen Huang"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 514.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.04140555555555556,
+    "claude_cost_usd": 0.028527,
+    "claude_input_tokens": 1894,
+    "claude_output_tokens": 1523,
+    "output_file": "why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md",
+    "output_format": "markdown",
+    "batch_id": "90994a34-22b8-44f1-b149-0a70a8793518"
+  },
+  {
+    "video_title": "MCP vs API: Simplifying AI Agent Integration with External Data",
+    "youtube_url": "https://www.youtube.com/watch?v=7j1t3UZA1TY",
+    "video_id": "7j1t3UZA1TY",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 790.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.06363888888888888,
+    "claude_cost_usd": 0.040743,
+    "claude_input_tokens": 2586,
+    "claude_output_tokens": 2199,
+    "output_file": "mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md",
+    "output_format": "markdown",
+    "batch_id": "f6960b06-a379-4a45-b4e9-262e0ce3f776"
+  },
+  {
+    "video_title": "John Carmack: Doom, Quake, VR, AGI, Programming, Video Games, and Rockets | Lex Fridman Podcast #309",
+    "youtube_url": "https://www.youtube.com/watch?v=I845O57ZSy4",
+    "video_id": "I845O57ZSy4",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "John Carmack"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 18890.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 1.5216944444444442,
+    "claude_cost_usd": 1.359054,
+    "claude_input_tokens": 95788,
+    "claude_output_tokens": 71446,
+    "output_file": "john-carmack-doom-quake-vr-agi-programming-video-games-and-rockets-lex-fridman-p.md",
+    "output_format": "markdown",
+    "batch_id": "f6960b06-a379-4a45-b4e9-262e0ce3f776"
+  },
+  {
+    "video_title": "Will AI replace programmers? | Lex Fridman Podcast",
+    "youtube_url": "https://youtu.be/odYNMCYRJS8",
+    "video_id": "odYNMCYRJS8",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Nathan Lambert"
+      },
+      {
+        "label": "Speaker C",
+        "name": "Sebastian Raschka"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 421.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.03391388888888889,
+    "claude_cost_usd": 0.031497,
+    "claude_input_tokens": 2149,
+    "claude_output_tokens": 1670,
+    "output_file": "will-ai-replace-programmers-lex-fridman-podcast.md",
+    "output_format": "markdown",
+    "batch_id": "f435058b-bac8-4242-91be-ac4815c4f09b"
+  },
+  {
+    "video_title": "Worst video game quest ever created: World of Warcraft's Green Hills of Stranglethorn | Jeff Kaplan",
+    "youtube_url": "https://youtu.be/ZB4AuwF66XY",
+    "video_id": "ZB4AuwF66XY",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jeff Kaplan"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 361.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.02908055555555555,
+    "claude_cost_usd": 0.021369,
+    "claude_input_tokens": 1548,
+    "claude_output_tokens": 1115,
+    "output_file": "worst-video-game-quest-ever-created-world-of-warcrafts-green-hills-of-strangleth.md",
+    "output_format": "markdown",
+    "batch_id": "f435058b-bac8-4242-91be-ac4815c4f09b"
+  },
+  {
+    "video_title": "Why China is successful in tech - NVIDIA CEO explains | Jensen Huang and Lex Fridman",
+    "youtube_url": "https://youtu.be/LpkmUa-CqaE",
+    "video_id": "LpkmUa-CqaE",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      },
+      {
+        "label": "Speaker B",
+        "name": "Jensen Huang"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 514.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.04140555555555556,
+    "claude_cost_usd": 0.028544999999999997,
+    "claude_input_tokens": 1895,
+    "claude_output_tokens": 1524,
+    "output_file": "why-china-is-successful-in-tech-nvidia-ceo-explains-jensen-huang-and-lex-fridman.md",
+    "output_format": "markdown",
+    "batch_id": "f435058b-bac8-4242-91be-ac4815c4f09b"
+  },
+  {
+    "video_title": "MCP vs API: Simplifying AI Agent Integration with External Data",
+    "youtube_url": "https://www.youtube.com/watch?v=7j1t3UZA1TY",
+    "video_id": "7j1t3UZA1TY",
+    "speakers": [
+      {
+        "label": "Speaker A",
+        "name": "Lex Fridman"
+      }
+    ],
+    "primary_speaker": null,
+    "duration_seconds": 790.0,
+    "date_transcribed": "2026-03-29",
+    "assemblyai_cost_usd": 0.06363888888888888,
+    "claude_cost_usd": 0.040778999999999996,
+    "claude_input_tokens": 2588,
+    "claude_output_tokens": 2201,
+    "output_file": "mcp-vs-api-simplifying-ai-agent-integration-with-external-data.md",
+    "output_format": "markdown",
+    "batch_id": "f435058b-bac8-4242-91be-ac4815c4f09b"
+  }
+]

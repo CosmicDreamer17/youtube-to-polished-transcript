@@ -42,6 +42,7 @@ pub struct Transcript {
     pub source: VideoSource,
     pub speakers: Vec<Speaker>,
     pub utterances: Vec<Utterance>,
+    pub context: Option<String>,
 }
 
 impl Transcript {
@@ -79,6 +80,7 @@ mod tests {
                 Utterance::new("Speaker B", "Hi there", 3.5, 6.0),
                 Utterance::new("Speaker A", "How are you?", 6.0, 10.0),
             ],
+            context: None,
         }
     }
 

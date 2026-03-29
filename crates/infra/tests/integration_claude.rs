@@ -24,6 +24,7 @@ async fn polish_removes_filler_words() {
             0.0,
             5.0,
         )],
+        context: None,
     };
 
     let result = polisher.polish(&transcript).await.unwrap();

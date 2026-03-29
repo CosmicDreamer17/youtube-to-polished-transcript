@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use async_trait::async_trait;
 use serde::Deserialize;
 use tokio::process::Command;
 use yt2pt_domain::errors::Yt2ptError;
@@ -56,6 +57,7 @@ impl YtdlpAudioExtractor {
     }
 }
 
+#[async_trait]
 impl AudioExtractor for YtdlpAudioExtractor {
     async fn extract(&self, source: &VideoSource) -> Result<AudioFile, Yt2ptError> {
         tokio::fs::create_dir_all(&self.output_dir)

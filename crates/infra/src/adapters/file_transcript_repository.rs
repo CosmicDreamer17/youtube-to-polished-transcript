@@ -107,6 +107,7 @@ mod tests {
                 Utterance::new("Speaker A", "Hello world", 0.0, 3.0),
                 Utterance::new("Speaker B", "Hi there", 3.0, 5.0),
             ],
+            context: None,
         }
     }
 

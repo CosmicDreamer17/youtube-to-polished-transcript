@@ -1,10 +1,12 @@
+use async_trait::async_trait;
 use crate::errors::Yt2ptError;
 use crate::models::audio_file::AudioFile;
 use crate::models::video_source::VideoSource;
 
+#[async_trait]
 pub trait AudioExtractor: Send + Sync {
-    fn extract(
+    async fn extract(
         &self,
         source: &VideoSource,
-    ) -> impl std::future::Future<Output = Result<AudioFile, Yt2ptError>> + Send;
+    ) -> Result<AudioFile, Yt2ptError>;
 }

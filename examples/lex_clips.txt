@@ -1,0 +1,16 @@
+# Lex Clips Batch Test
+# Format: URL | Speakers (comma-separated) | Context/Topics
+
+# --- Previous Successful Clips ---
+https://youtu.be/odYNMCYRJS8 | Lex Fridman, Nathan Lambert, Sebastian Raschka | Discussion about whether AI will replace programmers.
+https://youtu.be/ZB4AuwF66XY | Lex Fridman, Jeff Kaplan | Jeff Kaplan on World of Warcraft's Green Hills of Stranglethorn quest design.
+https://youtu.be/GMNbZKqQJ2A | Lex Fridman, Jeff Kaplan | Lex and Jeff Kaplan discuss the greatest FPS of all time (Quake, Rust).
+https://youtu.be/LpkmUa-CqaE | Lex Fridman, Jensen Huang | Jensen Huang on why China is successful in tech and AI researcher demographics.
+
+# --- New Clips ---
+https://www.youtube.com/watch?v=2kz7Xx5Zx1Q | Lex Fridman, Magnus Carlsen | Magnus Carlsen on intuition in chess. Calm pacing, thoughtful responses.
+https://www.youtube.com/watch?v=7j1t3UZA1TY | Lex Fridman, Garry Kasparov | Garry Kasparov on human vs machine intelligence. Clear contrast in voices.
+https://www.youtube.com/watch?v=Yg8u8f8q6vQ | Lex Fridman, Donald Knuth | Donald Knuth on the joy of programming. Slow, precise speech.
+https://www.youtube.com/watch?v=I845O57ZSy4 | Lex Fridman, John Carmack | John Carmack on problem solving. Highly structured technical explanations.
+https://www.youtube.com/watch?v=E2Y6H9YF8yE | Lex Fridman, Demis Hassabis | Demis Hassabis on learning and intelligence. Clear articulation, minimal interruptions.
+https://www.youtube.com/watch?v=Zs2bF6l4F8A | Lex Fridman, Jim Keller | Jim Keller on how CPUs are designed. Technical but very linear explanations.

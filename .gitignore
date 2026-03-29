@@ -6,4 +6,10 @@
 *.opus
 *.ogg
 *.webm
-output/
+
+# Keep transcripts and index
+output/*
+!output/*.md
+!output/manifest.json
+!output/index.html
+

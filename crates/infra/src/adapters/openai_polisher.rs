@@ -259,6 +259,7 @@ impl Polisher for OpenAIPolisher {
                 source: transcript.source.clone(),
                 speakers: transcript.speakers.clone(),
                 utterances: polished_utterances,
+                context: transcript.context.clone(),
             },
             input_tokens: total_input_tokens,
             output_tokens: total_output_tokens,
