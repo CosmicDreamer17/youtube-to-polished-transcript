@@ -16,6 +16,7 @@ const BASE_URL: &str = "https://api.assemblyai.com/v2";
 #[derive(Serialize)]
 struct TranscriptionRequest {
     audio_url: String,
+    speech_models: Vec<String>,
     speaker_labels: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     speakers_expected: Option<i32>,
@@ -95,11 +96,12 @@ impl AssemblyAITranscriber {
     async fn submit_transcription(&self, audio_url: &str) -> Result<String, VoxtractError> {
         let request = TranscriptionRequest {
             audio_url: audio_url.to_string(),
+            speech_models: vec!["universal-3-pro".to_string()],
             speaker_labels: true,
             speakers_expected: self.speakers_expected,
         };
 
-        let resp: TranscriptionResponse = self
+        let response = self
             .client
             .post(format!("{BASE_URL}/transcript"))
             .header("authorization", &self.api_key)
@@ -107,12 +109,25 @@ impl AssemblyAITranscriber {
             .json(&request)
             .send()
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Submit failed: {e}")))?
-            .json()
-            .await
-            .map_err(|e| {
-                VoxtractError::Transcription(format!("Submit response parse failed: {e}"))
-            })?;
+            .map_err(|e| VoxtractError::Transcription(format!("Submit failed: {e}")))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(VoxtractError::Transcription(format!(
+                "AssemblyAI submit returned {status}: {body}"
+            )));
+        }
+
+        let body = response.text().await.map_err(|e| {
+            VoxtractError::Transcription(format!("Failed to read submit response: {e}"))
+        })?;
+
+        let resp: TranscriptionResponse = serde_json::from_str(&body).map_err(|e| {
+            VoxtractError::Transcription(format!(
+                "Submit response parse failed: {e}\nBody: {body}"
+            ))
+        })?;
 
         Ok(resp.id)
     }
