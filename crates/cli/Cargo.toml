@@ -1,0 +1,22 @@
+[package]
+name = "voxtract"
+version.workspace = true
+edition.workspace = true
+description = "YouTube video to polished, speaker-attributed transcript"
+repository = "https://github.com/CosmicDreamer17/voxtract-rs"
+license = "MIT"
+
+[[bin]]
+name = "voxtract"
+path = "src/main.rs"
+
+[dependencies]
+voxtract-domain = { path = "../domain" }
+voxtract-application = { path = "../application" }
+voxtract-infra = { path = "../infra" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+dotenvy = "0.15"
+dialoguer = "0.11"
+console = "0.15"
+indicatif = "0.17"

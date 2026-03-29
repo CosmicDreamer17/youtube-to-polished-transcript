@@ -1,0 +1,10 @@
+[package]
+name = "voxtract-application"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+voxtract-domain = { path = "../domain" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

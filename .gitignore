@@ -1,0 +1,9 @@
+/target
+.env
+*.wav
+*.m4a
+*.mp3
+*.opus
+*.ogg
+*.webm
+output/

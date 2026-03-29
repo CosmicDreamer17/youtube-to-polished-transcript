@@ -1,0 +1,16 @@
+# Example test video URLs for voxtract
+
+# Smoke test — first YouTube video (18s, 1 speaker)
+https://www.youtube.com/watch?v=jNQXAC9IVRw
+
+# Single speaker — TED Talk (3:27, 1 speaker)
+https://www.youtube.com/watch?v=JnfBXjWm7hc
+
+# Multi-speaker panel — CNBC debate (4:38, 3 speakers)
+https://www.youtube.com/watch?v=w8aOZ8rBZ-E
+
+# Two-speaker interview — Between Two Ferns (4:44, 2 speakers)
+https://www.youtube.com/watch?v=8vgpWyAcqO4
+
+# Intimate conversation — StoryCorps (5:52, 2 speakers)
+https://www.youtube.com/watch?v=WNfvuJr9164
