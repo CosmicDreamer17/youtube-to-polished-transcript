@@ -1,8 +1,8 @@
 /// Integration tests for YtdlpAudioExtractor.
-/// Run with: cargo test -p voxtract-infra --test integration_ytdlp -- --ignored
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::audio_extractor::AudioExtractor;
-use voxtract_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
+/// Run with: cargo test -p yt2pt-infra --test integration_ytdlp -- --ignored
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::audio_extractor::AudioExtractor;
+use yt2pt_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
 
 #[tokio::test]
 #[ignore] // Requires yt-dlp and network access

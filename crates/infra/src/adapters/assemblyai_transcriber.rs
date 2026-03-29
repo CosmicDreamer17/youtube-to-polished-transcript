@@ -4,12 +4,12 @@ use std::time::Duration;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::audio_file::AudioFile;
-use voxtract_domain::models::transcript::RawTranscript;
-use voxtract_domain::models::utterance::Utterance;
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::transcriber::Transcriber;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::audio_file::AudioFile;
+use yt2pt_domain::models::transcript::RawTranscript;
+use yt2pt_domain::models::utterance::Utterance;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::transcriber::Transcriber;
 
 const BASE_URL: &str = "https://api.assemblyai.com/v2";
 
@@ -70,10 +70,10 @@ impl AssemblyAITranscriber {
         }
     }
 
-    async fn upload_file(&self, path: &std::path::Path) -> Result<String, VoxtractError> {
+    async fn upload_file(&self, path: &std::path::Path) -> Result<String, Yt2ptError> {
         let data = tokio::fs::read(path)
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Failed to read audio file: {e}")))?;
+            .map_err(|e| Yt2ptError::Transcription(format!("Failed to read audio file: {e}")))?;
 
         let resp: UploadResponse = self
             .client
@@ -83,17 +83,17 @@ impl AssemblyAITranscriber {
             .body(data)
             .send()
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Upload failed: {e}")))?
+            .map_err(|e| Yt2ptError::Transcription(format!("Upload failed: {e}")))?
             .json()
             .await
             .map_err(|e| {
-                VoxtractError::Transcription(format!("Upload response parse failed: {e}"))
+                Yt2ptError::Transcription(format!("Upload response parse failed: {e}"))
             })?;
 
         Ok(resp.upload_url)
     }
 
-    async fn submit_transcription(&self, audio_url: &str) -> Result<String, VoxtractError> {
+    async fn submit_transcription(&self, audio_url: &str) -> Result<String, Yt2ptError> {
         let request = TranscriptionRequest {
             audio_url: audio_url.to_string(),
             speech_models: vec!["universal-3-pro".to_string()],
@@ -109,22 +109,22 @@ impl AssemblyAITranscriber {
             .json(&request)
             .send()
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Submit failed: {e}")))?;
+            .map_err(|e| Yt2ptError::Transcription(format!("Submit failed: {e}")))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(VoxtractError::Transcription(format!(
+            return Err(Yt2ptError::Transcription(format!(
                 "AssemblyAI submit returned {status}: {body}"
             )));
         }
 
         let body = response.text().await.map_err(|e| {
-            VoxtractError::Transcription(format!("Failed to read submit response: {e}"))
+            Yt2ptError::Transcription(format!("Failed to read submit response: {e}"))
         })?;
 
         let resp: TranscriptionResponse = serde_json::from_str(&body).map_err(|e| {
-            VoxtractError::Transcription(format!("Submit response parse failed: {e}\nBody: {body}"))
+            Yt2ptError::Transcription(format!("Submit response parse failed: {e}\nBody: {body}"))
         })?;
 
         Ok(resp.id)
@@ -133,7 +133,7 @@ impl AssemblyAITranscriber {
     async fn poll_until_complete(
         &self,
         transcript_id: &str,
-    ) -> Result<TranscriptionResponse, VoxtractError> {
+    ) -> Result<TranscriptionResponse, Yt2ptError> {
         let url = format!("{BASE_URL}/transcript/{transcript_id}");
         let max_attempts = 600; // 30 minutes at 3s intervals
 
@@ -144,16 +144,16 @@ impl AssemblyAITranscriber {
                 .header("authorization", &self.api_key)
                 .send()
                 .await
-                .map_err(|e| VoxtractError::Transcription(format!("Poll failed: {e}")))?
+                .map_err(|e| Yt2ptError::Transcription(format!("Poll failed: {e}")))?
                 .json()
                 .await
-                .map_err(|e| VoxtractError::Transcription(format!("Poll parse failed: {e}")))?;
+                .map_err(|e| Yt2ptError::Transcription(format!("Poll parse failed: {e}")))?;
 
             match resp.status.as_str() {
                 "completed" => return Ok(resp),
                 "error" => {
                     let msg = resp.error.unwrap_or_else(|| "Unknown error".to_string());
-                    return Err(VoxtractError::Transcription(format!(
+                    return Err(Yt2ptError::Transcription(format!(
                         "AssemblyAI returned error: {msg}"
                     )));
                 }
@@ -164,7 +164,7 @@ impl AssemblyAITranscriber {
             }
         }
 
-        Err(VoxtractError::Transcription(
+        Err(Yt2ptError::Transcription(
             "Transcription timed out after 30 minutes".to_string(),
         ))
     }
@@ -175,20 +175,20 @@ impl Transcriber for AssemblyAITranscriber {
         &self,
         audio: &AudioFile,
         source: &VideoSource,
-    ) -> Result<RawTranscript, VoxtractError> {
+    ) -> Result<RawTranscript, Yt2ptError> {
         let upload_url = self.upload_file(&audio.path).await?;
         let transcript_id = self.submit_transcription(&upload_url).await?;
         let response = self.poll_until_complete(&transcript_id).await?;
 
         let aai_utterances = response.utterances.ok_or_else(|| {
-            VoxtractError::Transcription(
+            Yt2ptError::Transcription(
                 "AssemblyAI returned no utterances — audio may be silent or unrecognizable"
                     .to_string(),
             )
         })?;
 
         if aai_utterances.is_empty() {
-            return Err(VoxtractError::Transcription(
+            return Err(Yt2ptError::Transcription(
                 "AssemblyAI returned no utterances — audio may be silent or unrecognizable"
                     .to_string(),
             ));

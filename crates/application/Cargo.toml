@@ -1,10 +1,10 @@
 [package]
-name = "voxtract-application"
+name = "yt2pt-application"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-voxtract-domain = { path = "../domain" }
+yt2pt-domain = { path = "../domain" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }

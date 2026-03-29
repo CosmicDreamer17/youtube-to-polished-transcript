@@ -4,10 +4,10 @@ use std::sync::LazyLock;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::{PolishResult, Transcript};
-use voxtract_domain::models::utterance::Utterance;
-use voxtract_domain::ports::polisher::Polisher;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::transcript::{PolishResult, Transcript};
+use yt2pt_domain::models::utterance::Utterance;
+use yt2pt_domain::ports::polisher::Polisher;
 
 static RESPONSE_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\[.*?\]: (.*)$").unwrap());
@@ -128,7 +128,7 @@ impl ClaudePolisher {
         &self,
         batch: &[&Utterance],
         transcript: &Transcript,
-    ) -> Result<BatchResult, VoxtractError> {
+    ) -> Result<BatchResult, Yt2ptError> {
         let lines: Vec<String> = batch
             .iter()
             .map(|u| {
@@ -162,18 +162,18 @@ impl ClaudePolisher {
             .json(&request)
             .send()
             .await
-            .map_err(|e| VoxtractError::Polishing(format!("Claude API error: {e}")))?;
+            .map_err(|e| Yt2ptError::Polishing(format!("Claude API error: {e}")))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(VoxtractError::Polishing(format!(
+            return Err(Yt2ptError::Polishing(format!(
                 "Claude API returned {status}: {body}"
             )));
         }
 
         let msg_response: MessageResponse = response.json().await.map_err(|e| {
-            VoxtractError::Polishing(format!("Failed to parse Claude response: {e}"))
+            Yt2ptError::Polishing(format!("Failed to parse Claude response: {e}"))
         })?;
 
         let (input_tokens, output_tokens) = msg_response
@@ -233,7 +233,7 @@ impl ClaudePolisher {
 }
 
 impl Polisher for ClaudePolisher {
-    async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, VoxtractError> {
+    async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, Yt2ptError> {
         let batches = self.create_batches(&transcript.utterances);
         let mut polished_utterances: Vec<Utterance> = Vec::new();
         let mut total_input_tokens: u64 = 0;

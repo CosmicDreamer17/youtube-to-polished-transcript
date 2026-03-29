@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::{PolishResult, RawTranscript, Transcript};
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::audio_extractor::AudioExtractor;
-use voxtract_domain::ports::polisher::Polisher;
-use voxtract_domain::ports::transcriber::Transcriber;
-use voxtract_domain::ports::transcript_repository::TranscriptRepository;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::transcript::{PolishResult, RawTranscript, Transcript};
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::audio_extractor::AudioExtractor;
+use yt2pt_domain::ports::polisher::Polisher;
+use yt2pt_domain::ports::transcriber::Transcriber;
+use yt2pt_domain::ports::transcript_repository::TranscriptRepository;
 
 use crate::services::speaker_mapping;
 
@@ -48,7 +48,7 @@ where
     }
 
     /// Stages 1-2: Download audio and transcribe with diarization.
-    pub async fn extract_and_transcribe(&self, url: &str) -> Result<RawTranscript, VoxtractError> {
+    pub async fn extract_and_transcribe(&self, url: &str) -> Result<RawTranscript, Yt2ptError> {
         let source = VideoSource::new(url)?;
         let audio = self.audio_extractor.extract(&source).await?;
 
@@ -66,7 +66,7 @@ where
     pub async fn polish_and_save(
         &self,
         transcript: &Transcript,
-    ) -> Result<PipelineResult, VoxtractError> {
+    ) -> Result<PipelineResult, Yt2ptError> {
         let PolishResult {
             transcript: polished,
             input_tokens,
@@ -86,7 +86,7 @@ where
         url: &str,
         speaker_map: &HashMap<String, String>,
         primary_speaker_label: Option<&str>,
-    ) -> Result<PipelineResult, VoxtractError> {
+    ) -> Result<PipelineResult, Yt2ptError> {
         let raw = self.extract_and_transcribe(url).await?;
         let transcript = speaker_mapping::apply_mapping(&raw, speaker_map, primary_speaker_label);
         self.polish_and_save(&transcript).await
@@ -97,13 +97,13 @@ where
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    use voxtract_domain::models::audio_file::AudioFile;
-    use voxtract_domain::models::transcript::{PolishResult, Transcript};
-    use voxtract_domain::models::utterance::Utterance;
+    use yt2pt_domain::models::audio_file::AudioFile;
+    use yt2pt_domain::models::transcript::{PolishResult, Transcript};
+    use yt2pt_domain::models::utterance::Utterance;
 
     struct MockExtractor;
     impl AudioExtractor for MockExtractor {
-        async fn extract(&self, _source: &VideoSource) -> Result<AudioFile, VoxtractError> {
+        async fn extract(&self, _source: &VideoSource) -> Result<AudioFile, Yt2ptError> {
             Ok(AudioFile {
                 path: PathBuf::from("/tmp/test.wav"),
                 duration_seconds: 60.0,
@@ -119,7 +119,7 @@ mod tests {
             &self,
             audio: &AudioFile,
             source: &VideoSource,
-        ) -> Result<RawTranscript, VoxtractError> {
+        ) -> Result<RawTranscript, Yt2ptError> {
             Ok(RawTranscript {
                 source: source.clone(),
                 utterances: vec![
@@ -133,7 +133,7 @@ mod tests {
 
     struct MockPolisher;
     impl Polisher for MockPolisher {
-        async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, VoxtractError> {
+        async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, Yt2ptError> {
             Ok(PolishResult {
                 transcript: transcript.clone(),
                 input_tokens: 100,
@@ -144,7 +144,7 @@ mod tests {
 
     struct MockRepository;
     impl TranscriptRepository for MockRepository {
-        async fn save(&self, _transcript: &Transcript) -> Result<PathBuf, VoxtractError> {
+        async fn save(&self, _transcript: &Transcript) -> Result<PathBuf, Yt2ptError> {
             Ok(PathBuf::from("/tmp/output/test.md"))
         }
     }

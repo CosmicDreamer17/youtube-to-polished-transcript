@@ -2,7 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
-use crate::errors::VoxtractError;
+use crate::errors::Yt2ptError;
 
 static YOUTUBE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})")
@@ -20,7 +20,7 @@ pub struct VideoSource {
 }
 
 impl VideoSource {
-    pub fn new(url: &str) -> Result<Self, VoxtractError> {
+    pub fn new(url: &str) -> Result<Self, Yt2ptError> {
         let video_id = Self::extract_video_id(url)?;
         Ok(Self {
             url: url.to_string(),
@@ -29,7 +29,7 @@ impl VideoSource {
         })
     }
 
-    pub fn with_title(url: &str, title: &str) -> Result<Self, VoxtractError> {
+    pub fn with_title(url: &str, title: &str) -> Result<Self, Yt2ptError> {
         let video_id = Self::extract_video_id(url)?;
         Ok(Self {
             url: url.to_string(),
@@ -46,14 +46,14 @@ impl VideoSource {
         }
     }
 
-    fn extract_video_id(url: &str) -> Result<String, VoxtractError> {
+    fn extract_video_id(url: &str) -> Result<String, Yt2ptError> {
         if let Some(caps) = YOUTUBE_RE.captures(url) {
             return Ok(caps[1].to_string());
         }
         if let Some(caps) = BARE_ID_RE.captures(url) {
             return Ok(caps[1].to_string());
         }
-        Err(VoxtractError::InvalidInput(format!(
+        Err(Yt2ptError::InvalidInput(format!(
             "Could not extract video ID from: {url}"
         )))
     }

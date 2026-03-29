@@ -1558,56 +1558,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "voxtract"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "console",
- "dialoguer",
- "dotenvy",
- "indicatif",
- "tokio",
- "uuid",
- "voxtract-application",
- "voxtract-domain",
- "voxtract-infra",
-]
-
-[[package]]
-name = "voxtract-application"
-version = "0.1.0"
-dependencies = [
- "tokio",
- "voxtract-domain",
-]
-
-[[package]]
-name = "voxtract-domain"
-version = "0.1.0"
-dependencies = [
- "regex",
- "serde",
- "thiserror 2.0.18",
- "uuid",
-]
-
-[[package]]
-name = "voxtract-infra"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "voxtract-domain",
-]
-
-[[package]]
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2097,6 +2047,56 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "yt2pt"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "console",
+ "dialoguer",
+ "dotenvy",
+ "indicatif",
+ "tokio",
+ "uuid",
+ "yt2pt-application",
+ "yt2pt-domain",
+ "yt2pt-infra",
+]
+
+[[package]]
+name = "yt2pt-application"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "yt2pt-domain",
+]
+
+[[package]]
+name = "yt2pt-domain"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
+name = "yt2pt-infra"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "yt2pt-domain",
 ]
 
 [[package]]

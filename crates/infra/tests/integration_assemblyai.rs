@@ -1,11 +1,11 @@
 /// Integration tests for AssemblyAITranscriber.
-/// Run with: cargo test -p voxtract-infra --test integration_assemblyai -- --ignored
+/// Run with: cargo test -p yt2pt-infra --test integration_assemblyai -- --ignored
 /// Requires ASSEMBLYAI_API_KEY env var.
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::audio_extractor::AudioExtractor;
-use voxtract_domain::ports::transcriber::Transcriber;
-use voxtract_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
-use voxtract_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::audio_extractor::AudioExtractor;
+use yt2pt_domain::ports::transcriber::Transcriber;
+use yt2pt_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
+use yt2pt_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
 
 #[tokio::test]
 #[ignore] // Requires AssemblyAI API key, yt-dlp, and network access (~$0.01)

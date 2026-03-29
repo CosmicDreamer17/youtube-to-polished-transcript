@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use serde_json::json;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::Transcript;
-use voxtract_domain::ports::transcript_repository::TranscriptRepository;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::transcript::Transcript;
+use yt2pt_domain::ports::transcript_repository::TranscriptRepository;
 
 use crate::util::slugify;
 
@@ -21,10 +21,10 @@ impl JsonTranscriptRepository {
 }
 
 impl TranscriptRepository for JsonTranscriptRepository {
-    async fn save(&self, transcript: &Transcript) -> Result<PathBuf, VoxtractError> {
+    async fn save(&self, transcript: &Transcript) -> Result<PathBuf, Yt2ptError> {
         tokio::fs::create_dir_all(&self.output_dir)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to create output dir: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to create output dir: {e}")))?;
 
         let title = if transcript.source.title.is_empty() {
             &transcript.source.video_id
@@ -62,11 +62,11 @@ impl TranscriptRepository for JsonTranscriptRepository {
         });
 
         let content = serde_json::to_string_pretty(&data)
-            .map_err(|e| VoxtractError::Extraction(format!("JSON serialization failed: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("JSON serialization failed: {e}")))?;
 
         tokio::fs::write(&path, content)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to write file: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to write file: {e}")))?;
 
         Ok(path)
     }
@@ -75,9 +75,9 @@ impl TranscriptRepository for JsonTranscriptRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use voxtract_domain::models::speaker::Speaker;
-    use voxtract_domain::models::utterance::Utterance;
-    use voxtract_domain::models::video_source::VideoSource;
+    use yt2pt_domain::models::speaker::Speaker;
+    use yt2pt_domain::models::utterance::Utterance;
+    use yt2pt_domain::models::video_source::VideoSource;
 
     #[tokio::test]
     async fn save_creates_json_file() {

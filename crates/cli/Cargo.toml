@@ -1,5 +1,5 @@
 [package]
-name = "voxtract"
+name = "yt2pt"
 version.workspace = true
 edition.workspace = true
 description = "YouTube video to polished, speaker-attributed transcript"
@@ -11,9 +11,9 @@ name = "yt2pt"
 path = "src/main.rs"
 
 [dependencies]
-voxtract-domain = { path = "../domain" }
-voxtract-application = { path = "../application" }
-voxtract-infra = { path = "../infra" }
+yt2pt-domain = { path = "../domain" }
+yt2pt-application = { path = "../application" }
+yt2pt-infra = { path = "../infra" }
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 dotenvy = "0.15"

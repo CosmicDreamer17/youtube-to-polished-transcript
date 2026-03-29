@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use reqwest::Client;
 use serde::Deserialize;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::audio_file::AudioFile;
-use voxtract_domain::models::transcript::RawTranscript;
-use voxtract_domain::models::utterance::Utterance;
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::transcriber::Transcriber;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::audio_file::AudioFile;
+use yt2pt_domain::models::transcript::RawTranscript;
+use yt2pt_domain::models::utterance::Utterance;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::transcriber::Transcriber;
 
 const API_URL: &str = "https://api.deepgram.com/v1/listen";
 
@@ -58,10 +58,10 @@ impl Transcriber for DeepgramTranscriber {
         &self,
         audio: &AudioFile,
         source: &VideoSource,
-    ) -> Result<RawTranscript, VoxtractError> {
+    ) -> Result<RawTranscript, Yt2ptError> {
         let data = tokio::fs::read(&audio.path)
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Failed to read audio file: {e}")))?;
+            .map_err(|e| Yt2ptError::Transcription(format!("Failed to read audio file: {e}")))?;
 
         // Deepgram API: send audio with query params for diarization
         let response = self
@@ -79,29 +79,29 @@ impl Transcriber for DeepgramTranscriber {
             .body(data)
             .send()
             .await
-            .map_err(|e| VoxtractError::Transcription(format!("Deepgram API error: {e}")))?;
+            .map_err(|e| Yt2ptError::Transcription(format!("Deepgram API error: {e}")))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(VoxtractError::Transcription(format!(
+            return Err(Yt2ptError::Transcription(format!(
                 "Deepgram returned {status}: {body}"
             )));
         }
 
         let dg_response: DeepgramResponse = response.json().await.map_err(|e| {
-            VoxtractError::Transcription(format!("Failed to parse Deepgram response: {e}"))
+            Yt2ptError::Transcription(format!("Failed to parse Deepgram response: {e}"))
         })?;
 
         let dg_utterances = dg_response.results.utterances.ok_or_else(|| {
-            VoxtractError::Transcription(
+            Yt2ptError::Transcription(
                 "Deepgram returned no utterances — audio may be silent or unrecognizable"
                     .to_string(),
             )
         })?;
 
         if dg_utterances.is_empty() {
-            return Err(VoxtractError::Transcription(
+            return Err(Yt2ptError::Transcription(
                 "Deepgram returned no utterances — audio may be silent or unrecognizable"
                     .to_string(),
             ));

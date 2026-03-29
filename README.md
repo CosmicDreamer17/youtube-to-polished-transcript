@@ -240,9 +240,9 @@ No changes to domain, application, or existing adapters.
 cargo test --workspace
 
 # Run integration tests (requires API keys and network access)
-cargo test -p voxtract-infra --test integration_ytdlp -- --ignored
-cargo test -p voxtract-infra --test integration_assemblyai -- --ignored
-cargo test -p voxtract-infra --test integration_claude -- --ignored
+cargo test -p yt2pt-infra --test integration_ytdlp -- --ignored
+cargo test -p yt2pt-infra --test integration_assemblyai -- --ignored
+cargo test -p yt2pt-infra --test integration_claude -- --ignored
 
 # Lint and format
 cargo clippy --workspace -- -D warnings

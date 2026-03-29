@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::manifest::ManifestEntry;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::manifest::ManifestEntry;
 
 pub struct FileManifestRepository {
     output_dir: PathBuf,
@@ -15,10 +15,10 @@ impl FileManifestRepository {
         }
     }
 
-    pub async fn append(&self, entry: &ManifestEntry) -> Result<(), VoxtractError> {
+    pub async fn append(&self, entry: &ManifestEntry) -> Result<(), Yt2ptError> {
         tokio::fs::create_dir_all(&self.output_dir)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to create output dir: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to create output dir: {e}")))?;
 
         // Read existing manifest or start fresh
         let manifest_path = self.output_dir.join("manifest.json");
@@ -35,16 +35,16 @@ impl FileManifestRepository {
 
         // Write manifest.json
         let json = serde_json::to_string_pretty(&entries)
-            .map_err(|e| VoxtractError::Extraction(format!("JSON serialization failed: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("JSON serialization failed: {e}")))?;
         tokio::fs::write(&manifest_path, json)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to write manifest: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to write manifest: {e}")))?;
 
         // Generate index.html
         let html = render_html(&entries);
         tokio::fs::write(self.output_dir.join("index.html"), html)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to write index.html: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to write index.html: {e}")))?;
 
         Ok(())
     }
@@ -390,7 +390,7 @@ fn html_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use voxtract_domain::models::manifest::ManifestSpeaker;
+    use yt2pt_domain::models::manifest::ManifestSpeaker;
 
     fn make_entry() -> ManifestEntry {
         ManifestEntry {

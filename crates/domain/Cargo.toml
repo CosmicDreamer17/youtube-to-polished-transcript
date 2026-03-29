@@ -1,5 +1,5 @@
 [package]
-name = "voxtract-domain"
+name = "yt2pt-domain"
 version.workspace = true
 edition.workspace = true
 

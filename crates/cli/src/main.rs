@@ -8,25 +8,25 @@ use dialoguer::Input;
 use indicatif::{ProgressBar, ProgressStyle};
 use uuid::Uuid;
 
-use voxtract_application::services::speaker_mapping;
-use voxtract_application::services::transcript_pipeline::{
+use yt2pt_application::services::speaker_mapping;
+use yt2pt_application::services::transcript_pipeline::{
     PipelineResult, TranscriptPipelineService,
 };
-use voxtract_domain::models::manifest::{ManifestEntry, ManifestSpeaker};
-use voxtract_domain::models::transcript::RawTranscript;
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
-use voxtract_infra::adapters::claude_polisher::ClaudePolisher;
-use voxtract_infra::adapters::deepgram_transcriber::DeepgramTranscriber;
-use voxtract_infra::adapters::file_transcript_repository::FileTranscriptRepository;
-use voxtract_infra::adapters::gemini_polisher::GeminiPolisher;
-use voxtract_infra::adapters::json_transcript_repository::JsonTranscriptRepository;
-use voxtract_infra::adapters::manifest_repository::FileManifestRepository;
-use voxtract_infra::adapters::ollama_polisher::OllamaPolisher;
-use voxtract_infra::adapters::openai_polisher::OpenAIPolisher;
-use voxtract_infra::adapters::srt_transcript_repository::SrtTranscriptRepository;
-use voxtract_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
-use voxtract_infra::settings::Settings;
+use yt2pt_domain::models::manifest::{ManifestEntry, ManifestSpeaker};
+use yt2pt_domain::models::transcript::RawTranscript;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
+use yt2pt_infra::adapters::claude_polisher::ClaudePolisher;
+use yt2pt_infra::adapters::deepgram_transcriber::DeepgramTranscriber;
+use yt2pt_infra::adapters::file_transcript_repository::FileTranscriptRepository;
+use yt2pt_infra::adapters::gemini_polisher::GeminiPolisher;
+use yt2pt_infra::adapters::json_transcript_repository::JsonTranscriptRepository;
+use yt2pt_infra::adapters::manifest_repository::FileManifestRepository;
+use yt2pt_infra::adapters::ollama_polisher::OllamaPolisher;
+use yt2pt_infra::adapters::openai_polisher::OpenAIPolisher;
+use yt2pt_infra::adapters::srt_transcript_repository::SrtTranscriptRepository;
+use yt2pt_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
+use yt2pt_infra::settings::Settings;
 
 #[derive(Debug, Clone, ValueEnum)]
 enum OutputFormat {
@@ -252,7 +252,7 @@ fn interactive_speaker_mapping(raw: &RawTranscript) -> HashMap<String, String> {
 
 fn build_manifest_entry(
     raw: &RawTranscript,
-    transcript: &voxtract_domain::models::transcript::Transcript,
+    transcript: &yt2pt_domain::models::transcript::Transcript,
     result: &PipelineResult,
     output_format: &str,
     batch_id: Option<&str>,

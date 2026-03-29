@@ -1,12 +1,12 @@
 /// Integration tests for ClaudePolisher.
-/// Run with: cargo test -p voxtract-infra --test integration_claude -- --ignored
+/// Run with: cargo test -p yt2pt-infra --test integration_claude -- --ignored
 /// Requires ANTHROPIC_API_KEY env var.
-use voxtract_domain::models::speaker::Speaker;
-use voxtract_domain::models::transcript::Transcript;
-use voxtract_domain::models::utterance::Utterance;
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::polisher::Polisher;
-use voxtract_infra::adapters::claude_polisher::ClaudePolisher;
+use yt2pt_domain::models::speaker::Speaker;
+use yt2pt_domain::models::transcript::Transcript;
+use yt2pt_domain::models::utterance::Utterance;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::polisher::Polisher;
+use yt2pt_infra::adapters::claude_polisher::ClaudePolisher;
 
 #[tokio::test]
 #[ignore] // Requires Anthropic API key and network access (~$0.001)

@@ -1,8 +1,8 @@
 use thiserror::Error;
 
-/// Top-level error type for all voxtract domain errors.
+/// Top-level error type for all yt2pt domain errors.
 #[derive(Debug, Error)]
-pub enum VoxtractError {
+pub enum Yt2ptError {
     #[error("Extraction failed: {0}")]
     Extraction(String),
 

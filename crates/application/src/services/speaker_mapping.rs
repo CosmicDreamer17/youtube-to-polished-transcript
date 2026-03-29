@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use voxtract_domain::models::speaker::Speaker;
-use voxtract_domain::models::transcript::{RawTranscript, Transcript};
+use yt2pt_domain::models::speaker::Speaker;
+use yt2pt_domain::models::transcript::{RawTranscript, Transcript};
 
 /// Return sample utterances for each speaker to help identification.
 pub fn get_speaker_samples(
@@ -65,8 +65,8 @@ pub fn apply_mapping(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use voxtract_domain::models::utterance::Utterance;
-    use voxtract_domain::models::video_source::VideoSource;
+    use yt2pt_domain::models::utterance::Utterance;
+    use yt2pt_domain::models::video_source::VideoSource;
 
     fn make_raw() -> RawTranscript {
         RawTranscript {

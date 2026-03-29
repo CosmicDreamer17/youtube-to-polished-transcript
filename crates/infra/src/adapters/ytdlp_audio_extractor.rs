@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use tokio::process::Command;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::audio_file::AudioFile;
-use voxtract_domain::models::video_source::VideoSource;
-use voxtract_domain::ports::audio_extractor::AudioExtractor;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::audio_file::AudioFile;
+use yt2pt_domain::models::video_source::VideoSource;
+use yt2pt_domain::ports::audio_extractor::AudioExtractor;
 
 #[derive(Deserialize)]
 struct YtDlpInfo {
@@ -57,10 +57,10 @@ impl YtdlpAudioExtractor {
 }
 
 impl AudioExtractor for YtdlpAudioExtractor {
-    async fn extract(&self, source: &VideoSource) -> Result<AudioFile, VoxtractError> {
+    async fn extract(&self, source: &VideoSource) -> Result<AudioFile, Yt2ptError> {
         tokio::fs::create_dir_all(&self.output_dir)
             .await
-            .map_err(|e| VoxtractError::Extraction(format!("Failed to create output dir: {e}")))?;
+            .map_err(|e| Yt2ptError::Extraction(format!("Failed to create output dir: {e}")))?;
 
         let output_template = self.output_dir.join(format!("{}.%(ext)s", source.video_id));
 
@@ -84,12 +84,12 @@ impl AudioExtractor for YtdlpAudioExtractor {
             .output()
             .await
             .map_err(|e| {
-                VoxtractError::Extraction(format!("Failed to run yt-dlp (is it installed?): {e}"))
+                Yt2ptError::Extraction(format!("Failed to run yt-dlp (is it installed?): {e}"))
             })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(VoxtractError::Extraction(format!(
+            return Err(Yt2ptError::Extraction(format!(
                 "yt-dlp failed: {stderr}"
             )));
         }
@@ -101,7 +101,7 @@ impl AudioExtractor for YtdlpAudioExtractor {
         });
 
         let audio_path = self.find_audio_file(&source.video_id).ok_or_else(|| {
-            VoxtractError::Extraction(format!(
+            Yt2ptError::Extraction(format!(
                 "Expected audio file not found for {} in {}",
                 source.video_id,
                 self.output_dir.display()

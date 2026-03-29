@@ -4,10 +4,10 @@ use std::sync::LazyLock;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
-use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::{PolishResult, Transcript};
-use voxtract_domain::models::utterance::Utterance;
-use voxtract_domain::ports::polisher::Polisher;
+use yt2pt_domain::errors::Yt2ptError;
+use yt2pt_domain::models::transcript::{PolishResult, Transcript};
+use yt2pt_domain::models::utterance::Utterance;
+use yt2pt_domain::ports::polisher::Polisher;
 
 static RESPONSE_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\[.*?\]: (.*)$").unwrap());
@@ -125,7 +125,7 @@ impl OllamaPolisher {
         &self,
         batch: &[&Utterance],
         transcript: &Transcript,
-    ) -> Result<BatchResult, VoxtractError> {
+    ) -> Result<BatchResult, Yt2ptError> {
         let lines: Vec<String> = batch
             .iter()
             .map(|u| {
@@ -165,7 +165,7 @@ impl OllamaPolisher {
             .send()
             .await
             .map_err(|e| {
-                VoxtractError::Polishing(format!(
+                Yt2ptError::Polishing(format!(
                     "Ollama API error (is Ollama running at {}?): {e}",
                     self.base_url
                 ))
@@ -174,13 +174,13 @@ impl OllamaPolisher {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(VoxtractError::Polishing(format!(
+            return Err(Yt2ptError::Polishing(format!(
                 "Ollama returned {status}: {body}"
             )));
         }
 
         let ollama_response: OllamaResponse = response.json().await.map_err(|e| {
-            VoxtractError::Polishing(format!("Failed to parse Ollama response: {e}"))
+            Yt2ptError::Polishing(format!("Failed to parse Ollama response: {e}"))
         })?;
 
         let input_tokens = ollama_response.prompt_eval_count.unwrap_or(0);
@@ -228,7 +228,7 @@ impl OllamaPolisher {
 }
 
 impl Polisher for OllamaPolisher {
-    async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, VoxtractError> {
+    async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, Yt2ptError> {
         let batches = self.create_batches(&transcript.utterances);
         let mut polished_utterances: Vec<Utterance> = Vec::new();
         let mut total_input_tokens: u64 = 0;
