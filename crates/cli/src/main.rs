@@ -61,9 +61,9 @@ enum PolisherChoice {
 
 #[derive(Parser)]
 #[command(
-    name = "voxtract",
+    name = "yt2pt",
     version,
-    about = "YouTube video to polished, speaker-attributed transcript"
+    about = "YouTube to Polished Transcript — speaker-attributed, LLM-polished transcripts from YouTube videos"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -296,7 +296,7 @@ macro_rules! run_pipeline {
     ($transcriber:expr, $polisher:expr, $repo:expr, $settings:expr,
      $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
-        let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
+        let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("yt2pt"));
         let pipeline = TranscriptPipelineService::new(extractor, $transcriber, $polisher, $repo);
 
         let spinner = make_spinner("Extracting audio...");
@@ -371,7 +371,7 @@ macro_rules! run_batch_pipeline {
      $urls:expr, $dry_run:expr, $fmt_str:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
         let batch_id = Uuid::new_v4().to_string();
-        let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
+        let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("yt2pt"));
         let pipeline = TranscriptPipelineService::new(extractor, $transcriber, $polisher, $repo);
 
         let total = $urls.len();

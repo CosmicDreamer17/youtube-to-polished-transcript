@@ -1,8 +1,8 @@
-# Voxtract
+# YouTube to Polished Transcript (`yt2pt`)
 
 YouTube video → polished, speaker-attributed transcript.
 
-Voxtract is a Rust CLI that converts YouTube videos into clean, readable transcripts with speaker identification. It runs a 5-stage pipeline with pluggable providers — you choose which transcription service and which LLM to use.
+`yt2pt` is a Rust CLI that converts YouTube videos into clean, readable transcripts with speaker identification. It runs a 5-stage pipeline with pluggable providers — you choose which transcription service and which LLM to use.
 
 ## Pipeline
 
@@ -67,16 +67,16 @@ Any transcriber works with any polisher. Choose based on your API keys, budget, 
 
 ```bash
 # Default: AssemblyAI + Claude
-voxtract transcribe "https://youtube.com/watch?v=..."
+yt2pt transcribe "https://youtube.com/watch?v=..."
 
 # Budget option: Deepgram + Gemini
-voxtract transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher gemini
+yt2pt transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher gemini
 
 # Free local polishing: AssemblyAI + Ollama
-voxtract transcribe "https://youtube.com/watch?v=..." --polisher ollama --ollama-model llama3.1
+yt2pt transcribe "https://youtube.com/watch?v=..." --polisher ollama --ollama-model llama3.1
 
 # OpenAI everything: Deepgram + GPT-4o
-voxtract transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher openai
+yt2pt transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher openai
 ```
 
 ## Prerequisites
@@ -112,10 +112,10 @@ cp .env.example .env
 # Edit .env — only the keys for your chosen providers are needed
 
 # 3. Transcribe a video
-./target/release/voxtract transcribe "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+./target/release/yt2pt transcribe "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 ```
 
-Or install globally: `cargo install --path crates/cli`
+Or install globally: `cargo install --path crates/cli` (installs the `yt2pt` binary)
 
 ## Configuration
 
@@ -128,8 +128,8 @@ Environment variables (loaded from `.env` automatically):
 | `ANTHROPIC_API_KEY` | If using Claude | — | [console.anthropic.com](https://console.anthropic.com/) |
 | `OPENAI_API_KEY` | If using OpenAI | — | [platform.openai.com](https://platform.openai.com/) |
 | `GOOGLE_API_KEY` | If using Gemini | — | [aistudio.google.com](https://aistudio.google.com/) |
-| `VOXTRACT_OUTPUT_DIR` | No | `./output` | Directory for saved transcripts |
-| `VOXTRACT_OUTPUT_FORMAT` | No | `markdown` | Default output format |
+| `YT2PT_OUTPUT_DIR` | No | `./output` | Directory for saved transcripts |
+| `YT2PT_OUTPUT_FORMAT` | No | `markdown` | Default output format |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama server URL |
 
 Only the API keys for your chosen providers are validated. For example, using `--transcriber deepgram --polisher ollama` only requires `DEEPGRAM_API_KEY`.
@@ -140,32 +140,32 @@ Only the API keys for your chosen providers are validated. For example, using `-
 
 ```bash
 # Interactive speaker mapping (prompts you to name each speaker)
-voxtract transcribe "https://www.youtube.com/watch?v=..."
+yt2pt transcribe "https://www.youtube.com/watch?v=..."
 
 # Pre-specified speakers
-voxtract transcribe "https://www.youtube.com/watch?v=..." -s "Alice,Bob" -p "Speaker A"
+yt2pt transcribe "https://www.youtube.com/watch?v=..." -s "Alice,Bob" -p "Speaker A"
 
 # Hint expected number of speakers
-voxtract transcribe "https://www.youtube.com/watch?v=..." -n 3
+yt2pt transcribe "https://www.youtube.com/watch?v=..." -n 3
 
 # Dry run — transcribe only, skip polishing (no polisher API key needed)
-voxtract transcribe "https://www.youtube.com/watch?v=..." --dry-run
+yt2pt transcribe "https://www.youtube.com/watch?v=..." --dry-run
 
 # JSON output
-voxtract transcribe "https://www.youtube.com/watch?v=..." -f json
+yt2pt transcribe "https://www.youtube.com/watch?v=..." -f json
 
 # SRT subtitles
-voxtract transcribe "https://www.youtube.com/watch?v=..." -f srt
+yt2pt transcribe "https://www.youtube.com/watch?v=..." -f srt
 
 # Custom output directory
-voxtract transcribe "https://www.youtube.com/watch?v=..." -o ./transcripts
+yt2pt transcribe "https://www.youtube.com/watch?v=..." -o ./transcripts
 ```
 
 ### Batch processing
 
 ```bash
-voxtract batch examples/urls.txt
-voxtract batch examples/urls.txt -f json -o ./transcripts --transcriber deepgram --polisher gemini
+yt2pt batch examples/urls.txt
+yt2pt batch examples/urls.txt -f json -o ./transcripts --transcriber deepgram --polisher gemini
 ```
 
 Input file: one YouTube URL per line. Lines starting with `#` are comments. Already-processed videos are automatically skipped. In batch mode, speakers are auto-labeled (no interactive prompts).

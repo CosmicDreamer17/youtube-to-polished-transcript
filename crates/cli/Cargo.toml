@@ -7,7 +7,7 @@ repository = "https://github.com/CosmicDreamer17/youtube-to-polished-transcript"
 license = "MIT"
 
 [[bin]]
-name = "voxtract"
+name = "yt2pt"
 path = "src/main.rs"
 
 [dependencies]

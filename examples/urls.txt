@@ -1,4 +1,4 @@
-# Example test video URLs for voxtract
+# Example test video URLs for yt2pt
 
 # Smoke test — first YouTube video (18s, 1 speaker)
 https://www.youtube.com/watch?v=jNQXAC9IVRw

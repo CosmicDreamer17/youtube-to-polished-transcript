@@ -19,9 +19,9 @@ impl Settings {
             google_api_key: std::env::var("GOOGLE_API_KEY").unwrap_or_default(),
             deepgram_api_key: std::env::var("DEEPGRAM_API_KEY").unwrap_or_default(),
             output_dir: PathBuf::from(
-                std::env::var("VOXTRACT_OUTPUT_DIR").unwrap_or_else(|_| "output".to_string()),
+                std::env::var("YT2PT_OUTPUT_DIR").unwrap_or_else(|_| "output".to_string()),
             ),
-            output_format: std::env::var("VOXTRACT_OUTPUT_FORMAT")
+            output_format: std::env::var("YT2PT_OUTPUT_FORMAT")
                 .unwrap_or_else(|_| "markdown".to_string()),
         }
     }
