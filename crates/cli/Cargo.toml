@@ -3,7 +3,7 @@ name = "voxtract"
 version.workspace = true
 edition.workspace = true
 description = "YouTube video to polished, speaker-attributed transcript"
-repository = "https://github.com/CosmicDreamer17/voxtract-rs"
+repository = "https://github.com/CosmicDreamer17/youtube-to-polished-transcript"
 license = "MIT"
 
 [[bin]]
