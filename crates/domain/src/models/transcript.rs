@@ -6,6 +6,15 @@ use crate::models::video_source::VideoSource;
 pub struct RawTranscript {
     pub source: VideoSource,
     pub utterances: Vec<Utterance>,
+    pub audio_duration_seconds: f64,
+}
+
+/// Result of polishing a transcript, including token usage for cost tracking.
+#[derive(Debug, Clone)]
+pub struct PolishResult {
+    pub transcript: Transcript,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
 }
 
 impl RawTranscript {
@@ -102,6 +111,7 @@ mod tests {
                 Utterance::new("Speaker B", "Hi", 1.0, 2.0),
                 Utterance::new("Speaker A", "Bye", 2.0, 3.0),
             ],
+            audio_duration_seconds: 3.0,
         };
         assert_eq!(raw.speaker_labels(), vec!["Speaker A", "Speaker B"]);
     }
@@ -115,6 +125,7 @@ mod tests {
                 Utterance::new("Speaker B", "Hi", 1.0, 2.0),
                 Utterance::new("Speaker A", "Bye", 2.0, 3.0),
             ],
+            audio_duration_seconds: 3.0,
         };
         let a_utts = raw.utterances_by_speaker("Speaker A");
         assert_eq!(a_utts.len(), 2);

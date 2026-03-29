@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::{RawTranscript, Transcript};
+use voxtract_domain::models::transcript::{PolishResult, RawTranscript, Transcript};
 use voxtract_domain::models::video_source::VideoSource;
 use voxtract_domain::ports::audio_extractor::AudioExtractor;
 use voxtract_domain::ports::polisher::Polisher;
@@ -10,6 +10,13 @@ use voxtract_domain::ports::transcriber::Transcriber;
 use voxtract_domain::ports::transcript_repository::TranscriptRepository;
 
 use crate::services::speaker_mapping;
+
+/// Result of polish_and_save, including cost-tracking data.
+pub struct PipelineResult {
+    pub output_path: PathBuf,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+}
 
 pub struct TranscriptPipelineService<E, T, P, R>
 where
@@ -56,9 +63,21 @@ where
     }
 
     /// Stages 4-5: Polish transcript and save to file.
-    pub async fn polish_and_save(&self, transcript: &Transcript) -> Result<PathBuf, VoxtractError> {
-        let polished = self.polisher.polish(transcript).await?;
-        self.repository.save(&polished).await
+    pub async fn polish_and_save(
+        &self,
+        transcript: &Transcript,
+    ) -> Result<PipelineResult, VoxtractError> {
+        let PolishResult {
+            transcript: polished,
+            input_tokens,
+            output_tokens,
+        } = self.polisher.polish(transcript).await?;
+        let output_path = self.repository.save(&polished).await?;
+        Ok(PipelineResult {
+            output_path,
+            input_tokens,
+            output_tokens,
+        })
     }
 
     /// Run the full pipeline: extract, transcribe, map speakers, polish, save.
@@ -67,7 +86,7 @@ where
         url: &str,
         speaker_map: &HashMap<String, String>,
         primary_speaker_label: Option<&str>,
-    ) -> Result<PathBuf, VoxtractError> {
+    ) -> Result<PipelineResult, VoxtractError> {
         let raw = self.extract_and_transcribe(url).await?;
         let transcript = speaker_mapping::apply_mapping(&raw, speaker_map, primary_speaker_label);
         self.polish_and_save(&transcript).await
@@ -79,7 +98,7 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
     use voxtract_domain::models::audio_file::AudioFile;
-    use voxtract_domain::models::transcript::Transcript;
+    use voxtract_domain::models::transcript::{PolishResult, Transcript};
     use voxtract_domain::models::utterance::Utterance;
 
     struct MockExtractor;
@@ -98,7 +117,7 @@ mod tests {
     impl Transcriber for MockTranscriber {
         async fn transcribe(
             &self,
-            _audio: &AudioFile,
+            audio: &AudioFile,
             source: &VideoSource,
         ) -> Result<RawTranscript, VoxtractError> {
             Ok(RawTranscript {
@@ -107,14 +126,19 @@ mod tests {
                     Utterance::new("Speaker A", "Hello world", 0.0, 3.0),
                     Utterance::new("Speaker B", "Hi there", 3.0, 5.0),
                 ],
+                audio_duration_seconds: audio.duration_seconds,
             })
         }
     }
 
     struct MockPolisher;
     impl Polisher for MockPolisher {
-        async fn polish(&self, transcript: &Transcript) -> Result<Transcript, VoxtractError> {
-            Ok(transcript.clone())
+        async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, VoxtractError> {
+            Ok(PolishResult {
+                transcript: transcript.clone(),
+                input_tokens: 100,
+                output_tokens: 90,
+            })
         }
     }
 
@@ -151,7 +175,7 @@ mod tests {
         );
         let mut names = HashMap::new();
         names.insert("Speaker A".to_string(), "Alice".to_string());
-        let path = pipeline
+        let result = pipeline
             .run(
                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 &names,
@@ -159,6 +183,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(path, PathBuf::from("/tmp/output/test.md"));
+        assert_eq!(result.output_path, PathBuf::from("/tmp/output/test.md"));
+        assert_eq!(result.input_tokens, 100);
     }
 }

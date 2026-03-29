@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 use voxtract_domain::errors::VoxtractError;
-use voxtract_domain::models::transcript::Transcript;
+use voxtract_domain::models::transcript::{PolishResult, Transcript};
 use voxtract_domain::models::utterance::Utterance;
 use voxtract_domain::ports::polisher::Polisher;
 
@@ -56,11 +56,28 @@ struct Message {
 #[derive(Deserialize)]
 struct MessageResponse {
     content: Vec<ContentBlock>,
+    #[serde(default)]
+    usage: Option<Usage>,
 }
 
 #[derive(Deserialize)]
 struct ContentBlock {
     text: String,
+}
+
+#[derive(Deserialize)]
+struct Usage {
+    #[serde(default)]
+    input_tokens: u64,
+    #[serde(default)]
+    output_tokens: u64,
+}
+
+/// Result from a single batch polish call.
+struct BatchResult {
+    texts: Vec<String>,
+    input_tokens: u64,
+    output_tokens: u64,
 }
 
 pub struct ClaudePolisher {
@@ -111,7 +128,7 @@ impl ClaudePolisher {
         &self,
         batch: &[&Utterance],
         transcript: &Transcript,
-    ) -> Result<Vec<String>, VoxtractError> {
+    ) -> Result<BatchResult, VoxtractError> {
         let lines: Vec<String> = batch
             .iter()
             .map(|u| {
@@ -159,6 +176,11 @@ impl ClaudePolisher {
             VoxtractError::Polishing(format!("Failed to parse Claude response: {e}"))
         })?;
 
+        let (input_tokens, output_tokens) = msg_response
+            .usage
+            .map(|u| (u.input_tokens, u.output_tokens))
+            .unwrap_or((0, 0));
+
         let response_text = msg_response
             .content
             .first()
@@ -195,21 +217,33 @@ impl ClaudePolisher {
                 polished_texts.len(),
                 batch.len()
             );
-            return Ok(batch.iter().map(|u| u.text.clone()).collect());
+            return Ok(BatchResult {
+                texts: batch.iter().map(|u| u.text.clone()).collect(),
+                input_tokens,
+                output_tokens,
+            });
         }
 
-        Ok(polished_texts)
+        Ok(BatchResult {
+            texts: polished_texts,
+            input_tokens,
+            output_tokens,
+        })
     }
 }
 
 impl Polisher for ClaudePolisher {
-    async fn polish(&self, transcript: &Transcript) -> Result<Transcript, VoxtractError> {
+    async fn polish(&self, transcript: &Transcript) -> Result<PolishResult, VoxtractError> {
         let batches = self.create_batches(&transcript.utterances);
         let mut polished_utterances: Vec<Utterance> = Vec::new();
+        let mut total_input_tokens: u64 = 0;
+        let mut total_output_tokens: u64 = 0;
 
         for batch in &batches {
-            let polished_texts = self.polish_batch(batch, transcript).await?;
-            for (utterance, new_text) in batch.iter().zip(polished_texts.into_iter()) {
+            let result = self.polish_batch(batch, transcript).await?;
+            total_input_tokens += result.input_tokens;
+            total_output_tokens += result.output_tokens;
+            for (utterance, new_text) in batch.iter().zip(result.texts.into_iter()) {
                 polished_utterances.push(Utterance::new(
                     &utterance.speaker_label,
                     &new_text,
@@ -219,10 +253,14 @@ impl Polisher for ClaudePolisher {
             }
         }
 
-        Ok(Transcript {
-            source: transcript.source.clone(),
-            speakers: transcript.speakers.clone(),
-            utterances: polished_utterances,
+        Ok(PolishResult {
+            transcript: Transcript {
+                source: transcript.source.clone(),
+                speakers: transcript.speakers.clone(),
+                utterances: polished_utterances,
+            },
+            input_tokens: total_input_tokens,
+            output_tokens: total_output_tokens,
         })
     }
 }

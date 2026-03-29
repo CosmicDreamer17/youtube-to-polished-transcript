@@ -1,19 +1,23 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use chrono::Utc;
 use clap::{Parser, Subcommand, ValueEnum};
 use console::style;
 use dialoguer::Input;
 use indicatif::{ProgressBar, ProgressStyle};
+use uuid::Uuid;
 
 use voxtract_application::services::speaker_mapping;
 use voxtract_application::services::transcript_pipeline::TranscriptPipelineService;
+use voxtract_domain::models::manifest::{ManifestEntry, ManifestSpeaker};
 use voxtract_domain::models::transcript::RawTranscript;
 use voxtract_domain::models::video_source::VideoSource;
 use voxtract_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
 use voxtract_infra::adapters::claude_polisher::ClaudePolisher;
 use voxtract_infra::adapters::file_transcript_repository::FileTranscriptRepository;
 use voxtract_infra::adapters::json_transcript_repository::JsonTranscriptRepository;
+use voxtract_infra::adapters::manifest_repository::FileManifestRepository;
 use voxtract_infra::adapters::srt_transcript_repository::SrtTranscriptRepository;
 use voxtract_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
 use voxtract_infra::settings::Settings;
@@ -23,6 +27,16 @@ enum OutputFormat {
     Markdown,
     Json,
     Srt,
+}
+
+impl OutputFormat {
+    fn as_str(&self) -> &str {
+        match self {
+            OutputFormat::Markdown => "markdown",
+            OutputFormat::Json => "json",
+            OutputFormat::Srt => "srt",
+        }
+    }
 }
 
 #[derive(Parser)]
@@ -195,11 +209,10 @@ fn interactive_speaker_mapping(raw: &RawTranscript) -> HashMap<String, String> {
     name_map
 }
 
-/// Macro to run the transcribe pipeline with any repository type.
-/// This avoids code duplication since the pipeline is generic over the repository.
 macro_rules! run_transcribe {
     ($settings:expr, $expected_speakers:expr, $url:expr, $speakers:expr,
-     $primary:expr, $dry_run:expr, $repo:expr) => {{
+     $primary:expr, $dry_run:expr, $repo:expr, $output_format:expr) => {{
+        let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
         let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
         let transcriber =
             AssemblyAITranscriber::new(&$settings.assemblyai_api_key, $expected_speakers);
@@ -250,12 +263,53 @@ macro_rules! run_transcribe {
         spinner.finish_and_clear();
 
         match result {
-            Ok(path) => {
+            Ok(pipeline_result) => {
                 println!(
                     "{} Saved to: {}",
                     style("Done!").green().bold(),
-                    path.display()
+                    pipeline_result.output_path.display()
                 );
+
+                // Write manifest entry
+                let entry = ManifestEntry {
+                    video_title: transcript.source.title.clone(),
+                    youtube_url: transcript.source.url.clone(),
+                    video_id: transcript.source.video_id.clone(),
+                    speakers: transcript
+                        .speakers
+                        .iter()
+                        .map(|s| ManifestSpeaker {
+                            label: s.label.clone(),
+                            name: s.name().to_string(),
+                        })
+                        .collect(),
+                    primary_speaker: transcript.primary_speaker().map(|s| s.name().to_string()),
+                    duration_seconds: raw.audio_duration_seconds,
+                    date_transcribed: Utc::now().format("%Y-%m-%d").to_string(),
+                    assemblyai_cost_usd: ManifestEntry::compute_assemblyai_cost(
+                        raw.audio_duration_seconds,
+                    ),
+                    claude_cost_usd: ManifestEntry::compute_claude_cost(
+                        pipeline_result.input_tokens,
+                        pipeline_result.output_tokens,
+                    ),
+                    claude_input_tokens: pipeline_result.input_tokens,
+                    claude_output_tokens: pipeline_result.output_tokens,
+                    output_file: pipeline_result
+                        .output_path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                    output_format: $output_format.to_string(),
+                    batch_id: None,
+                };
+                if let Err(e) = manifest_repo.append(&entry).await {
+                    eprintln!(
+                        "{} Failed to update manifest: {e}",
+                        style("Warning:").yellow()
+                    );
+                }
             }
             Err(e) => {
                 eprintln!("{} {e}", style("Error:").red());
@@ -265,9 +319,10 @@ macro_rules! run_transcribe {
     }};
 }
 
-/// Macro for batch processing with any repository type.
 macro_rules! run_batch {
-    ($settings:expr, $urls:expr, $dry_run:expr, $repo:expr) => {{
+    ($settings:expr, $urls:expr, $dry_run:expr, $repo:expr, $output_format:expr) => {{
+        let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
+        let batch_id = Uuid::new_v4().to_string();
         let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
         let transcriber = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
         let polisher = ClaudePolisher::new(&$settings.anthropic_api_key);
@@ -345,12 +400,60 @@ macro_rules! run_batch {
                     spinner.finish_and_clear();
 
                     match result {
-                        Ok(path) => {
+                        Ok(pipeline_result) => {
                             println!(
                                 "{prefix} {} -> {}",
                                 style(title).green(),
-                                path.file_name().unwrap_or_default().to_string_lossy()
+                                pipeline_result
+                                    .output_path
+                                    .file_name()
+                                    .unwrap_or_default()
+                                    .to_string_lossy()
                             );
+
+                            // Write manifest entry
+                            let entry = ManifestEntry {
+                                video_title: transcript.source.title.clone(),
+                                youtube_url: transcript.source.url.clone(),
+                                video_id: transcript.source.video_id.clone(),
+                                speakers: transcript
+                                    .speakers
+                                    .iter()
+                                    .map(|s| ManifestSpeaker {
+                                        label: s.label.clone(),
+                                        name: s.name().to_string(),
+                                    })
+                                    .collect(),
+                                primary_speaker: transcript
+                                    .primary_speaker()
+                                    .map(|s| s.name().to_string()),
+                                duration_seconds: raw.audio_duration_seconds,
+                                date_transcribed: Utc::now().format("%Y-%m-%d").to_string(),
+                                assemblyai_cost_usd: ManifestEntry::compute_assemblyai_cost(
+                                    raw.audio_duration_seconds,
+                                ),
+                                claude_cost_usd: ManifestEntry::compute_claude_cost(
+                                    pipeline_result.input_tokens,
+                                    pipeline_result.output_tokens,
+                                ),
+                                claude_input_tokens: pipeline_result.input_tokens,
+                                claude_output_tokens: pipeline_result.output_tokens,
+                                output_file: pipeline_result
+                                    .output_path
+                                    .file_name()
+                                    .unwrap_or_default()
+                                    .to_string_lossy()
+                                    .to_string(),
+                                output_format: $output_format.to_string(),
+                                batch_id: Some(batch_id.clone()),
+                            };
+                            if let Err(e) = manifest_repo.append(&entry).await {
+                                eprintln!(
+                                    "{} Failed to update manifest: {e}",
+                                    style("Warning:").yellow()
+                                );
+                            }
+
                             succeeded += 1;
                         }
                         Err(e) => {
@@ -403,16 +506,12 @@ async fn main() {
             if let Some(dir) = output_dir {
                 settings.output_dir = dir;
             }
-            if let Some(fmt) = &format {
-                settings.output_format = match fmt {
-                    OutputFormat::Markdown => "markdown".to_string(),
-                    OutputFormat::Json => "json".to_string(),
-                    OutputFormat::Srt => "srt".to_string(),
-                };
-            }
+            let fmt = format.unwrap_or(OutputFormat::Markdown);
+            settings.output_format = fmt.as_str().to_string();
             validate_settings(&settings, dry_run);
 
-            match format.unwrap_or(OutputFormat::Markdown) {
+            let fmt_str = fmt.as_str();
+            match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
                     run_transcribe!(
@@ -422,7 +521,8 @@ async fn main() {
                         speakers,
                         primary,
                         dry_run,
-                        repo
+                        repo,
+                        fmt_str
                     );
                 }
                 OutputFormat::Json => {
@@ -434,7 +534,8 @@ async fn main() {
                         speakers,
                         primary,
                         dry_run,
-                        repo
+                        repo,
+                        fmt_str
                     );
                 }
                 OutputFormat::Srt => {
@@ -446,7 +547,8 @@ async fn main() {
                         speakers,
                         primary,
                         dry_run,
-                        repo
+                        repo,
+                        fmt_str
                     );
                 }
             }
@@ -461,13 +563,8 @@ async fn main() {
             if let Some(dir) = output_dir {
                 settings.output_dir = dir;
             }
-            if let Some(fmt) = &format {
-                settings.output_format = match fmt {
-                    OutputFormat::Markdown => "markdown".to_string(),
-                    OutputFormat::Json => "json".to_string(),
-                    OutputFormat::Srt => "srt".to_string(),
-                };
-            }
+            let fmt = format.unwrap_or(OutputFormat::Markdown);
+            settings.output_format = fmt.as_str().to_string();
             validate_settings(&settings, dry_run);
 
             let urls = parse_batch_file(&file);
@@ -476,18 +573,19 @@ async fn main() {
                 return;
             }
 
-            match format.unwrap_or(OutputFormat::Markdown) {
+            let fmt_str = fmt.as_str();
+            match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo);
+                    run_batch!(settings, urls, dry_run, repo, fmt_str);
                 }
                 OutputFormat::Json => {
                     let repo = JsonTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo);
+                    run_batch!(settings, urls, dry_run, repo, fmt_str);
                 }
                 OutputFormat::Srt => {
                     let repo = SrtTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo);
+                    run_batch!(settings, urls, dry_run, repo, fmt_str);
                 }
             }
         }

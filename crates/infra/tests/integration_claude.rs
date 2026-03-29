@@ -26,9 +26,11 @@ async fn polish_removes_filler_words() {
         )],
     };
 
-    let polished = polisher.polish(&transcript).await.unwrap();
-    assert_eq!(polished.utterances.len(), 1);
-    let text = &polished.utterances[0].text;
+    let result = polisher.polish(&transcript).await.unwrap();
+    assert!(result.input_tokens > 0);
+    assert!(result.output_tokens > 0);
+    assert_eq!(result.transcript.utterances.len(), 1);
+    let text = &result.transcript.utterances[0].text;
     // Filler words should be removed
     assert!(!text.contains(" um "));
     assert!(!text.contains(" uh "));

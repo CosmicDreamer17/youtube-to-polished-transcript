@@ -76,6 +76,7 @@ mod tests {
                 Utterance::new("Speaker B", "Hi how are you", 3.5, 6.0),
                 Utterance::new("Speaker A", "I'm fine thanks", 6.0, 10.0),
             ],
+            audio_duration_seconds: 10.0,
         }
     }
 

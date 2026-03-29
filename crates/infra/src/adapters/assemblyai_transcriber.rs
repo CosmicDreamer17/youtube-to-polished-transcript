@@ -218,6 +218,7 @@ impl Transcriber for AssemblyAITranscriber {
         Ok(RawTranscript {
             source: source.clone(),
             utterances,
+            audio_duration_seconds: audio.duration_seconds,
         })
     }
 }

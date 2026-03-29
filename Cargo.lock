@@ -1561,12 +1561,14 @@ dependencies = [
 name = "voxtract"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "clap",
  "console",
  "dialoguer",
  "dotenvy",
  "indicatif",
  "tokio",
+ "uuid",
  "voxtract-application",
  "voxtract-domain",
  "voxtract-infra",
