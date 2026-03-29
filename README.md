@@ -1,14 +1,83 @@
-# Voxtract (Rust)
+# Voxtract
 
 YouTube video → polished, speaker-attributed transcript.
 
-Voxtract automates a 5-stage pipeline:
+Voxtract is a Rust CLI that converts YouTube videos into clean, readable transcripts with speaker identification. It runs a 5-stage pipeline with pluggable providers — you choose which transcription service and which LLM to use.
 
-1. **Audio Extraction** — downloads audio via yt-dlp (16kHz mono WAV)
-2. **Transcription + Diarization** — speech-to-text with speaker identification via AssemblyAI
-3. **Speaker Mapping** — interactive or CLI-specified mapping of auto-labels to real names
-4. **Polishing** — removes filler words, false starts, and verbal repetitions via Claude
-5. **Output** — saves as Markdown, JSON, or SRT subtitles
+## Pipeline
+
+```
+YouTube URL
+    │
+    ▼
+┌─────────────────────┐
+│ 1. Audio Extraction  │  yt-dlp → 16kHz mono WAV
+└─────────┬───────────┘
+          ▼
+┌─────────────────────┐
+│ 2. Transcription +   │  AssemblyAI or Deepgram
+│    Speaker Diarize   │  → timestamped utterances with speaker labels
+└─────────┬───────────┘
+          ▼
+┌─────────────────────┐
+│ 3. Speaker Mapping   │  Interactive prompts or --speakers flag
+│                      │  → "Speaker A" becomes "Alice"
+└─────────┬───────────┘
+          ▼
+┌─────────────────────┐
+│ 4. Polishing         │  Claude, OpenAI, Gemini, or Ollama
+│                      │  → removes filler words, false starts, repetitions
+└─────────┬───────────┘
+          ▼
+┌─────────────────────┐
+│ 5. Output            │  Markdown, JSON, or SRT
+│    + Manifest        │  → transcript file + manifest.json + index.html dashboard
+└─────────────────────┘
+```
+
+## Providers
+
+### Transcribers (`--transcriber`)
+
+Transcribers handle speech-to-text conversion with speaker diarization (identifying who said what).
+
+| Provider | Flag | Model | Pricing | API Key Env Var | Notes |
+|----------|------|-------|---------|-----------------|-------|
+| **AssemblyAI** (default) | `--transcriber assemblyai` | universal-3-pro | ~$0.29/hr | `ASSEMBLYAI_API_KEY` | Upload → poll workflow. Best accuracy for English. |
+| **Deepgram** | `--transcriber deepgram` | Nova-3 | ~$0.25/hr | `DEEPGRAM_API_KEY` | Single-request workflow. Fast, competitive accuracy. |
+
+Both transcribers produce the same output: a list of `Utterance` objects with `speaker_label`, `text`, `start_time`, and `end_time`. Speaker labels are auto-generated as "Speaker A", "Speaker B", etc.
+
+### Polishers (`--polisher`)
+
+Polishers clean up raw speech-to-text output using an LLM. All polishers use the same system prompt with 11 rules (remove filler words, fix false starts, preserve the speaker's voice, etc.). They batch utterances into ~2000-token chunks for efficiency.
+
+| Provider | Flag | Model | Pricing | API Key Env Var | Notes |
+|----------|------|-------|---------|-----------------|-------|
+| **Claude** (default) | `--polisher claude` | claude-sonnet-4 | $3/$15 per M tokens | `ANTHROPIC_API_KEY` | Anthropic Messages API. Best at preserving speaker voice. |
+| **OpenAI** | `--polisher openai` | gpt-4o | $2.50/$10 per M tokens | `OPENAI_API_KEY` | Chat Completions API. Widely available. |
+| **Gemini** | `--polisher gemini` | gemini-2.5-flash | Free tier available | `GOOGLE_API_KEY` | Google Generative Language API. Cost-effective. |
+| **Ollama** | `--polisher ollama` | llama3.1 (configurable) | Free (local) | None | Runs locally via [Ollama](https://ollama.com). Use `--ollama-model` to pick model. |
+
+All polishers return the polished transcript plus token usage counts (for cost tracking in the manifest).
+
+### Mixing and matching
+
+Any transcriber works with any polisher. Choose based on your API keys, budget, or quality preferences:
+
+```bash
+# Default: AssemblyAI + Claude
+voxtract transcribe "https://youtube.com/watch?v=..."
+
+# Budget option: Deepgram + Gemini
+voxtract transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher gemini
+
+# Free local polishing: AssemblyAI + Ollama
+voxtract transcribe "https://youtube.com/watch?v=..." --polisher ollama --ollama-model llama3.1
+
+# OpenAI everything: Deepgram + GPT-4o
+voxtract transcribe "https://youtube.com/watch?v=..." --transcriber deepgram --polisher openai
+```
 
 ## Prerequisites
 
@@ -29,32 +98,24 @@ Voxtract automates a 5-stage pipeline:
   # Or via pip
   pip install yt-dlp
   ```
-- **AssemblyAI API key** — [get one here](https://www.assemblyai.com/) (~$0.29/hour of audio)
-- **Anthropic API key** — [get one here](https://console.anthropic.com/) (~$0.10-0.30/hour for polishing)
 
 ## Quickstart
 
 ```bash
-# 1. Clone the repo
+# 1. Clone and build
 git clone https://github.com/CosmicDreamer17/youtube-to-polished-transcript.git
 cd youtube-to-polished-transcript
+cargo build --release
 
 # 2. Set up API keys
 cp .env.example .env
-# Edit .env and add your ASSEMBLYAI_API_KEY and ANTHROPIC_API_KEY
+# Edit .env — only the keys for your chosen providers are needed
 
-# 3. Build
-cargo build --release
-
-# 4. Run on a YouTube video
+# 3. Transcribe a video
 ./target/release/voxtract transcribe "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 ```
 
-You can also install it globally:
-
-```bash
-cargo install --path crates/cli
-```
+Or install globally: `cargo install --path crates/cli`
 
 ## Configuration
 
@@ -62,10 +123,16 @@ Environment variables (loaded from `.env` automatically):
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ASSEMBLYAI_API_KEY` | Yes | — | AssemblyAI API key for transcription |
-| `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key for polishing (not needed with `--dry-run`) |
+| `ASSEMBLYAI_API_KEY` | If using AssemblyAI | — | [assemblyai.com](https://www.assemblyai.com/) |
+| `DEEPGRAM_API_KEY` | If using Deepgram | — | [deepgram.com](https://deepgram.com/) |
+| `ANTHROPIC_API_KEY` | If using Claude | — | [console.anthropic.com](https://console.anthropic.com/) |
+| `OPENAI_API_KEY` | If using OpenAI | — | [platform.openai.com](https://platform.openai.com/) |
+| `GOOGLE_API_KEY` | If using Gemini | — | [aistudio.google.com](https://aistudio.google.com/) |
 | `VOXTRACT_OUTPUT_DIR` | No | `./output` | Directory for saved transcripts |
-| `VOXTRACT_OUTPUT_FORMAT` | No | `markdown` | Default output format (`markdown`, `json`, or `srt`) |
+| `VOXTRACT_OUTPUT_FORMAT` | No | `markdown` | Default output format |
+| `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama server URL |
+
+Only the API keys for your chosen providers are validated. For example, using `--transcriber deepgram --polisher ollama` only requires `DEEPGRAM_API_KEY`.
 
 ## Usage
 
@@ -75,22 +142,19 @@ Environment variables (loaded from `.env` automatically):
 # Interactive speaker mapping (prompts you to name each speaker)
 voxtract transcribe "https://www.youtube.com/watch?v=..."
 
-# Pre-specified speakers (maps Speaker A → Alice, Speaker B → Bob)
-voxtract transcribe "https://www.youtube.com/watch?v=..." -s "Alice,Bob"
-
-# Mark a primary speaker
+# Pre-specified speakers
 voxtract transcribe "https://www.youtube.com/watch?v=..." -s "Alice,Bob" -p "Speaker A"
 
-# Hint expected number of speakers (improves diarization accuracy)
+# Hint expected number of speakers
 voxtract transcribe "https://www.youtube.com/watch?v=..." -n 3
 
-# Dry run — transcribe only, skip polishing (saves Anthropic API cost)
+# Dry run — transcribe only, skip polishing (no polisher API key needed)
 voxtract transcribe "https://www.youtube.com/watch?v=..." --dry-run
 
-# Output as JSON
+# JSON output
 voxtract transcribe "https://www.youtube.com/watch?v=..." -f json
 
-# Output as SRT subtitles
+# SRT subtitles
 voxtract transcribe "https://www.youtube.com/watch?v=..." -f srt
 
 # Custom output directory
@@ -101,55 +165,73 @@ voxtract transcribe "https://www.youtube.com/watch?v=..." -o ./transcripts
 
 ```bash
 voxtract batch examples/urls.txt
-voxtract batch examples/urls.txt -f json -o ./transcripts
+voxtract batch examples/urls.txt -f json -o ./transcripts --transcriber deepgram --polisher gemini
 ```
 
 Input file: one YouTube URL per line. Lines starting with `#` are comments. Already-processed videos are automatically skipped. In batch mode, speakers are auto-labeled (no interactive prompts).
 
-### Example output
+## Output
 
-**Dry-run** (transcription only):
-```
-Transcription complete. Found 1 speaker, 1 utterances.
+Each transcription produces three things in the output directory:
 
-Raw Transcript (dry-run)
-Source: https://www.youtube.com/watch?v=jNQXAC9IVRw
-Speakers: Speaker A
+1. **Transcript file** (`*.md`, `*.json`, or `*.srt`) — the polished transcript
+2. **`manifest.json`** — structured inventory of all transcripts with metadata:
+   ```json
+   {
+     "video_title": "Me at the zoo",
+     "youtube_url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+     "speakers": [{"label": "Speaker A", "name": "Jawed"}],
+     "primary_speaker": "Jawed",
+     "duration_seconds": 19.0,
+     "assemblyai_cost_usd": 0.0015,
+     "claude_cost_usd": 0.0021,
+     "claude_input_tokens": 412,
+     "claude_output_tokens": 59,
+     "output_format": "markdown",
+     "batch_id": null
+   }
+   ```
+3. **`index.html`** — a self-contained dark-themed dashboard with summary stats, sortable table, cost breakdowns, and links to source videos. Open it in any browser.
 
-[00:00] Speaker A: Alright, so here we are in front of the elephants.
-The cool thing about these guys is that they have really, really,
-really long trunks, and that's cool.
-
-1 utterances total
-```
-
-**Markdown output** (`output/me-at-the-zoo.md`):
-```markdown
-# Transcript: Me at the zoo
-
-**Source:** https://www.youtube.com/watch?v=jNQXAC9IVRw
-**Date transcribed:** 2026-03-29
-**Speakers:** Jawed
-
----
-
-**Jawed:** Alright, so here we are in front of the elephants. The cool
-thing about these guys is that they have really long trunks, and that's
-cool. And that's pretty much all there is to say.
-```
+The manifest accumulates over time — each new transcription appends to the existing data and regenerates the HTML.
 
 ## Architecture
 
 Cargo workspace with 4 crates enforcing hexagonal architecture at compile time:
 
 ```
-domain       (no internal deps)    ← models, errors, port traits
-application  (→ domain)            ← pipeline service, speaker mapping
-infra        (→ domain)            ← adapters (yt-dlp, AssemblyAI, Claude, file repos)
-cli          (→ all three)         ← clap CLI, composition root
+crates/
+├── domain/       ← models, errors, port traits (zero I/O dependencies)
+│   ├── models/   VideoSource, Speaker, Utterance, AudioFile,
+│   │             RawTranscript, Transcript, PolishResult, ManifestEntry
+│   └── ports/    AudioExtractor, Transcriber, Polisher, TranscriptRepository
+│
+├── application/  ← pipeline orchestration, speaker mapping (depends on domain only)
+│
+├── infra/        ← all provider adapters (depends on domain only)
+│   └── adapters/
+│       ├── ytdlp_audio_extractor      (AudioExtractor)
+│       ├── assemblyai_transcriber     (Transcriber)
+│       ├── deepgram_transcriber       (Transcriber)
+│       ├── claude_polisher            (Polisher)
+│       ├── openai_polisher            (Polisher)
+│       ├── gemini_polisher            (Polisher)
+│       ├── ollama_polisher            (Polisher)
+│       ├── file_transcript_repository (TranscriptRepository → Markdown)
+│       ├── json_transcript_repository (TranscriptRepository → JSON)
+│       ├── srt_transcript_repository  (TranscriptRepository → SRT)
+│       └── manifest_repository        (manifest.json + index.html)
+│
+└── cli/          ← clap CLI, composition root (depends on all three)
 ```
 
-Layer boundaries are enforced by Cargo's dependency graph — if `domain` doesn't list `infra` as a dependency, the code physically cannot import it. No runtime linter needed.
+**Adding a new provider** requires only:
+1. Create a new adapter in `crates/infra/src/adapters/` implementing the relevant trait
+2. Add it to `mod.rs`
+3. Add a variant to the CLI enum and dispatch macro in `main.rs`
+4. Add the API key to `Settings` if needed
+
+No changes to domain, application, or existing adapters.
 
 ## Development
 
@@ -158,26 +240,14 @@ Layer boundaries are enforced by Cargo's dependency graph — if `domain` doesn'
 cargo test --workspace
 
 # Run integration tests (requires API keys and network access)
-cargo test -p voxtract-infra --test integration_ytdlp -- --ignored       # yt-dlp only
-cargo test -p voxtract-infra --test integration_assemblyai -- --ignored   # AssemblyAI (~$0.01)
-cargo test -p voxtract-infra --test integration_claude -- --ignored       # Claude (~$0.001)
+cargo test -p voxtract-infra --test integration_ytdlp -- --ignored
+cargo test -p voxtract-infra --test integration_assemblyai -- --ignored
+cargo test -p voxtract-infra --test integration_claude -- --ignored
 
-# Lint
+# Lint and format
 cargo clippy --workspace -- -D warnings
-
-# Format check
 cargo fmt --check
 ```
-
-## Cost Estimate
-
-| Service | Cost |
-|---------|------|
-| AssemblyAI transcription | ~$0.29/hour of audio |
-| Claude polishing | ~$0.10-0.30/hour of audio |
-| **Total** | **~$0.40-0.60 per video hour** |
-
-Use `--dry-run` to skip polishing and avoid the Anthropic API cost.
 
 ## License
 

@@ -2,6 +2,7 @@ pub mod assemblyai_transcriber;
 pub mod claude_polisher;
 pub mod deepgram_transcriber;
 pub mod file_transcript_repository;
+pub mod gemini_polisher;
 pub mod json_transcript_repository;
 pub mod manifest_repository;
 pub mod ollama_polisher;

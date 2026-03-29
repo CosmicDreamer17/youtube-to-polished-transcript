@@ -19,6 +19,7 @@ use voxtract_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
 use voxtract_infra::adapters::claude_polisher::ClaudePolisher;
 use voxtract_infra::adapters::deepgram_transcriber::DeepgramTranscriber;
 use voxtract_infra::adapters::file_transcript_repository::FileTranscriptRepository;
+use voxtract_infra::adapters::gemini_polisher::GeminiPolisher;
 use voxtract_infra::adapters::json_transcript_repository::JsonTranscriptRepository;
 use voxtract_infra::adapters::manifest_repository::FileManifestRepository;
 use voxtract_infra::adapters::ollama_polisher::OllamaPolisher;
@@ -54,6 +55,7 @@ enum TranscriberChoice {
 enum PolisherChoice {
     Claude,
     Openai,
+    Gemini,
     Ollama,
 }
 
@@ -519,6 +521,13 @@ macro_rules! dispatch {
                     t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
                 );
             }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = GeminiPolisher::new(&$settings.google_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = OllamaPolisher::new(&$ollama_model);
@@ -536,6 +545,13 @@ macro_rules! dispatch {
             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = GeminiPolisher::new(&$settings.google_api_key);
                 run_pipeline!(
                     t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
                 );
@@ -562,6 +578,11 @@ macro_rules! dispatch {
                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
                 run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
             }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = GeminiPolisher::new(&$settings.google_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = OllamaPolisher::new(&$ollama_model);
@@ -575,6 +596,11 @@ macro_rules! dispatch {
             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = GeminiPolisher::new(&$settings.google_api_key);
                 run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
             }
             (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
@@ -618,6 +644,7 @@ async fn main() {
             let pc_name = match polisher {
                 PolisherChoice::Claude => "claude",
                 PolisherChoice::Openai => "openai",
+                PolisherChoice::Gemini => "gemini",
                 PolisherChoice::Ollama => "ollama",
             };
             validate_settings(&settings, tc_name, pc_name, dry_run);
@@ -660,6 +687,7 @@ async fn main() {
             let pc_name = match polisher {
                 PolisherChoice::Claude => "claude",
                 PolisherChoice::Openai => "openai",
+                PolisherChoice::Gemini => "gemini",
                 PolisherChoice::Ollama => "ollama",
             };
             validate_settings(&settings, tc_name, pc_name, dry_run);
