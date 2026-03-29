@@ -1,7 +1,10 @@
 pub mod assemblyai_transcriber;
 pub mod claude_polisher;
+pub mod deepgram_transcriber;
 pub mod file_transcript_repository;
 pub mod json_transcript_repository;
 pub mod manifest_repository;
+pub mod ollama_polisher;
+pub mod openai_polisher;
 pub mod srt_transcript_repository;
 pub mod ytdlp_audio_extractor;

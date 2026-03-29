@@ -9,15 +9,20 @@ use indicatif::{ProgressBar, ProgressStyle};
 use uuid::Uuid;
 
 use voxtract_application::services::speaker_mapping;
-use voxtract_application::services::transcript_pipeline::TranscriptPipelineService;
+use voxtract_application::services::transcript_pipeline::{
+    PipelineResult, TranscriptPipelineService,
+};
 use voxtract_domain::models::manifest::{ManifestEntry, ManifestSpeaker};
 use voxtract_domain::models::transcript::RawTranscript;
 use voxtract_domain::models::video_source::VideoSource;
 use voxtract_infra::adapters::assemblyai_transcriber::AssemblyAITranscriber;
 use voxtract_infra::adapters::claude_polisher::ClaudePolisher;
+use voxtract_infra::adapters::deepgram_transcriber::DeepgramTranscriber;
 use voxtract_infra::adapters::file_transcript_repository::FileTranscriptRepository;
 use voxtract_infra::adapters::json_transcript_repository::JsonTranscriptRepository;
 use voxtract_infra::adapters::manifest_repository::FileManifestRepository;
+use voxtract_infra::adapters::ollama_polisher::OllamaPolisher;
+use voxtract_infra::adapters::openai_polisher::OpenAIPolisher;
 use voxtract_infra::adapters::srt_transcript_repository::SrtTranscriptRepository;
 use voxtract_infra::adapters::ytdlp_audio_extractor::YtdlpAudioExtractor;
 use voxtract_infra::settings::Settings;
@@ -37,6 +42,19 @@ impl OutputFormat {
             OutputFormat::Srt => "srt",
         }
     }
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum TranscriberChoice {
+    Assemblyai,
+    Deepgram,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum PolisherChoice {
+    Claude,
+    Openai,
+    Ollama,
 }
 
 #[derive(Parser)]
@@ -80,6 +98,18 @@ enum Commands {
         /// Output format
         #[arg(short, long, value_enum)]
         format: Option<OutputFormat>,
+
+        /// Transcription provider
+        #[arg(long, value_enum, default_value = "assemblyai")]
+        transcriber: TranscriberChoice,
+
+        /// Polishing provider
+        #[arg(long, value_enum, default_value = "claude")]
+        polisher: PolisherChoice,
+
+        /// Ollama model name (only used with --polisher ollama)
+        #[arg(long, default_value = "llama3.1")]
+        ollama_model: String,
     },
 
     /// Transcribe multiple YouTube videos from a text file
@@ -98,6 +128,18 @@ enum Commands {
         /// Output format
         #[arg(short, long, value_enum)]
         format: Option<OutputFormat>,
+
+        /// Transcription provider
+        #[arg(long, value_enum, default_value = "assemblyai")]
+        transcriber: TranscriberChoice,
+
+        /// Polishing provider
+        #[arg(long, value_enum, default_value = "claude")]
+        polisher: PolisherChoice,
+
+        /// Ollama model name (only used with --polisher ollama)
+        #[arg(long, default_value = "llama3.1")]
+        ollama_model: String,
     },
 }
 
@@ -113,11 +155,8 @@ fn make_spinner(msg: &str) -> ProgressBar {
     pb
 }
 
-fn validate_settings(settings: &Settings, dry_run: bool) {
-    let mut missing = settings.validate();
-    if dry_run {
-        missing.retain(|k| k != "ANTHROPIC_API_KEY");
-    }
+fn validate_settings(settings: &Settings, transcriber: &str, polisher: &str, dry_run: bool) {
+    let missing = settings.validate_for(transcriber, polisher, dry_run);
     if !missing.is_empty() {
         eprintln!(
             "{} Missing env vars: {}",
@@ -209,15 +248,54 @@ fn interactive_speaker_mapping(raw: &RawTranscript) -> HashMap<String, String> {
     name_map
 }
 
-macro_rules! run_transcribe {
-    ($settings:expr, $expected_speakers:expr, $url:expr, $speakers:expr,
-     $primary:expr, $dry_run:expr, $repo:expr, $output_format:expr) => {{
+fn build_manifest_entry(
+    raw: &RawTranscript,
+    transcript: &voxtract_domain::models::transcript::Transcript,
+    result: &PipelineResult,
+    output_format: &str,
+    batch_id: Option<&str>,
+) -> ManifestEntry {
+    ManifestEntry {
+        video_title: transcript.source.title.clone(),
+        youtube_url: transcript.source.url.clone(),
+        video_id: transcript.source.video_id.clone(),
+        speakers: transcript
+            .speakers
+            .iter()
+            .map(|s| ManifestSpeaker {
+                label: s.label.clone(),
+                name: s.name().to_string(),
+            })
+            .collect(),
+        primary_speaker: transcript.primary_speaker().map(|s| s.name().to_string()),
+        duration_seconds: raw.audio_duration_seconds,
+        date_transcribed: Utc::now().format("%Y-%m-%d").to_string(),
+        assemblyai_cost_usd: ManifestEntry::compute_assemblyai_cost(raw.audio_duration_seconds),
+        claude_cost_usd: ManifestEntry::compute_claude_cost(
+            result.input_tokens,
+            result.output_tokens,
+        ),
+        claude_input_tokens: result.input_tokens,
+        claude_output_tokens: result.output_tokens,
+        output_file: result
+            .output_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        output_format: output_format.to_string(),
+        batch_id: batch_id.map(|s| s.to_string()),
+    }
+}
+
+/// Run the transcribe pipeline with any combination of transcriber, polisher, and repository.
+/// This macro handles the generic type explosion from the pipeline service.
+macro_rules! run_pipeline {
+    ($transcriber:expr, $polisher:expr, $repo:expr, $settings:expr,
+     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
         let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
-        let transcriber =
-            AssemblyAITranscriber::new(&$settings.assemblyai_api_key, $expected_speakers);
-        let polisher = ClaudePolisher::new(&$settings.anthropic_api_key);
-        let pipeline = TranscriptPipelineService::new(extractor, transcriber, polisher, $repo);
+        let pipeline = TranscriptPipelineService::new(extractor, $transcriber, $polisher, $repo);
 
         let spinner = make_spinner("Extracting audio...");
         let raw = pipeline.extract_and_transcribe(&$url).await;
@@ -269,41 +347,8 @@ macro_rules! run_transcribe {
                     style("Done!").green().bold(),
                     pipeline_result.output_path.display()
                 );
-
-                // Write manifest entry
-                let entry = ManifestEntry {
-                    video_title: transcript.source.title.clone(),
-                    youtube_url: transcript.source.url.clone(),
-                    video_id: transcript.source.video_id.clone(),
-                    speakers: transcript
-                        .speakers
-                        .iter()
-                        .map(|s| ManifestSpeaker {
-                            label: s.label.clone(),
-                            name: s.name().to_string(),
-                        })
-                        .collect(),
-                    primary_speaker: transcript.primary_speaker().map(|s| s.name().to_string()),
-                    duration_seconds: raw.audio_duration_seconds,
-                    date_transcribed: Utc::now().format("%Y-%m-%d").to_string(),
-                    assemblyai_cost_usd: ManifestEntry::compute_assemblyai_cost(
-                        raw.audio_duration_seconds,
-                    ),
-                    claude_cost_usd: ManifestEntry::compute_claude_cost(
-                        pipeline_result.input_tokens,
-                        pipeline_result.output_tokens,
-                    ),
-                    claude_input_tokens: pipeline_result.input_tokens,
-                    claude_output_tokens: pipeline_result.output_tokens,
-                    output_file: pipeline_result
-                        .output_path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
-                    output_format: $output_format.to_string(),
-                    batch_id: None,
-                };
+                let entry =
+                    build_manifest_entry(&raw, &transcript, &pipeline_result, $fmt_str, None);
                 if let Err(e) = manifest_repo.append(&entry).await {
                     eprintln!(
                         "{} Failed to update manifest: {e}",
@@ -319,14 +364,13 @@ macro_rules! run_transcribe {
     }};
 }
 
-macro_rules! run_batch {
-    ($settings:expr, $urls:expr, $dry_run:expr, $repo:expr, $output_format:expr) => {{
+macro_rules! run_batch_pipeline {
+    ($transcriber:expr, $polisher:expr, $repo:expr, $settings:expr,
+     $urls:expr, $dry_run:expr, $fmt_str:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
         let batch_id = Uuid::new_v4().to_string();
         let extractor = YtdlpAudioExtractor::new(&std::env::temp_dir().join("voxtract"));
-        let transcriber = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
-        let polisher = ClaudePolisher::new(&$settings.anthropic_api_key);
-        let pipeline = TranscriptPipelineService::new(extractor, transcriber, polisher, $repo);
+        let pipeline = TranscriptPipelineService::new(extractor, $transcriber, $polisher, $repo);
 
         let total = $urls.len();
         println!(
@@ -346,7 +390,6 @@ macro_rules! run_batch {
         for (i, url) in $urls.iter().enumerate() {
             let prefix = style(format!("[{}/{}]", i + 1, total)).dim();
 
-            // Check if already processed
             if !$dry_run {
                 if let Ok(vid) = VideoSource::new(url) {
                     if let Ok(entries) = std::fs::read_dir(&$settings.output_dir) {
@@ -392,7 +435,6 @@ macro_rules! run_batch {
                         continue;
                     }
 
-                    // Auto-map speakers (no interactive in batch mode)
                     let transcript = speaker_mapping::apply_mapping(&raw, &HashMap::new(), None);
 
                     let spinner = make_spinner(&format!("{prefix} Polishing..."));
@@ -410,50 +452,19 @@ macro_rules! run_batch {
                                     .unwrap_or_default()
                                     .to_string_lossy()
                             );
-
-                            // Write manifest entry
-                            let entry = ManifestEntry {
-                                video_title: transcript.source.title.clone(),
-                                youtube_url: transcript.source.url.clone(),
-                                video_id: transcript.source.video_id.clone(),
-                                speakers: transcript
-                                    .speakers
-                                    .iter()
-                                    .map(|s| ManifestSpeaker {
-                                        label: s.label.clone(),
-                                        name: s.name().to_string(),
-                                    })
-                                    .collect(),
-                                primary_speaker: transcript
-                                    .primary_speaker()
-                                    .map(|s| s.name().to_string()),
-                                duration_seconds: raw.audio_duration_seconds,
-                                date_transcribed: Utc::now().format("%Y-%m-%d").to_string(),
-                                assemblyai_cost_usd: ManifestEntry::compute_assemblyai_cost(
-                                    raw.audio_duration_seconds,
-                                ),
-                                claude_cost_usd: ManifestEntry::compute_claude_cost(
-                                    pipeline_result.input_tokens,
-                                    pipeline_result.output_tokens,
-                                ),
-                                claude_input_tokens: pipeline_result.input_tokens,
-                                claude_output_tokens: pipeline_result.output_tokens,
-                                output_file: pipeline_result
-                                    .output_path
-                                    .file_name()
-                                    .unwrap_or_default()
-                                    .to_string_lossy()
-                                    .to_string(),
-                                output_format: $output_format.to_string(),
-                                batch_id: Some(batch_id.clone()),
-                            };
+                            let entry = build_manifest_entry(
+                                &raw,
+                                &transcript,
+                                &pipeline_result,
+                                $fmt_str,
+                                Some(&batch_id),
+                            );
                             if let Err(e) = manifest_repo.append(&entry).await {
                                 eprintln!(
                                     "{} Failed to update manifest: {e}",
                                     style("Warning:").yellow()
                                 );
                             }
-
                             succeeded += 1;
                         }
                         Err(e) => {
@@ -487,6 +498,94 @@ macro_rules! run_batch {
     }};
 }
 
+/// Dispatch to the correct combination of transcriber + polisher + repository.
+/// Each combination produces a unique monomorphized pipeline type, so we use
+/// macros to generate all the variants without boxing.
+macro_rules! dispatch {
+    (transcribe: $tc:expr, $pc:expr, $repo:expr, $settings:expr,
+     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr) => {
+        match ($tc, $pc) {
+            (TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = ClaudePolisher::new(&$settings.anthropic_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = OllamaPolisher::new(&$ollama_model);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = ClaudePolisher::new(&$settings.anthropic_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = OllamaPolisher::new(&$ollama_model);
+                run_pipeline!(
+                    t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str
+                );
+            }
+        }
+    };
+    (batch: $tc:expr, $pc:expr, $repo:expr, $settings:expr,
+     $urls:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr) => {
+        match ($tc, $pc) {
+            (TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = ClaudePolisher::new(&$settings.anthropic_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
+                let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
+                let p = OllamaPolisher::new(&$ollama_model);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = ClaudePolisher::new(&$settings.anthropic_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = OpenAIPolisher::new(&$settings.openai_api_key);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+            (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
+                let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
+                let p = OllamaPolisher::new(&$ollama_model);
+                run_batch_pipeline!(t, p, $repo, $settings, $urls, $dry_run, $fmt_str);
+            }
+        }
+    };
+}
+
 #[tokio::main]
 async fn main() {
     let _ = dotenvy::dotenv();
@@ -498,9 +597,12 @@ async fn main() {
             speakers,
             primary,
             output_dir,
-            expected_speakers,
+            expected_speakers: _,
             dry_run,
             format,
+            transcriber,
+            polisher,
+            ollama_model,
         } => {
             let mut settings = Settings::from_env();
             if let Some(dir) = output_dir {
@@ -508,48 +610,30 @@ async fn main() {
             }
             let fmt = format.unwrap_or(OutputFormat::Markdown);
             settings.output_format = fmt.as_str().to_string();
-            validate_settings(&settings, dry_run);
 
-            let fmt_str = fmt.as_str();
+            let tc_name = match transcriber {
+                TranscriberChoice::Assemblyai => "assemblyai",
+                TranscriberChoice::Deepgram => "deepgram",
+            };
+            let pc_name = match polisher {
+                PolisherChoice::Claude => "claude",
+                PolisherChoice::Openai => "openai",
+                PolisherChoice::Ollama => "ollama",
+            };
+            validate_settings(&settings, tc_name, pc_name, dry_run);
+
             match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
-                    run_transcribe!(
-                        settings,
-                        expected_speakers,
-                        url,
-                        speakers,
-                        primary,
-                        dry_run,
-                        repo,
-                        fmt_str
-                    );
+                    dispatch!(transcribe: transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "markdown", ollama_model);
                 }
                 OutputFormat::Json => {
                     let repo = JsonTranscriptRepository::new(&settings.output_dir);
-                    run_transcribe!(
-                        settings,
-                        expected_speakers,
-                        url,
-                        speakers,
-                        primary,
-                        dry_run,
-                        repo,
-                        fmt_str
-                    );
+                    dispatch!(transcribe: transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "json", ollama_model);
                 }
                 OutputFormat::Srt => {
                     let repo = SrtTranscriptRepository::new(&settings.output_dir);
-                    run_transcribe!(
-                        settings,
-                        expected_speakers,
-                        url,
-                        speakers,
-                        primary,
-                        dry_run,
-                        repo,
-                        fmt_str
-                    );
+                    dispatch!(transcribe: transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "srt", ollama_model);
                 }
             }
         }
@@ -558,6 +642,9 @@ async fn main() {
             output_dir,
             dry_run,
             format,
+            transcriber,
+            polisher,
+            ollama_model,
         } => {
             let mut settings = Settings::from_env();
             if let Some(dir) = output_dir {
@@ -565,7 +652,17 @@ async fn main() {
             }
             let fmt = format.unwrap_or(OutputFormat::Markdown);
             settings.output_format = fmt.as_str().to_string();
-            validate_settings(&settings, dry_run);
+
+            let tc_name = match transcriber {
+                TranscriberChoice::Assemblyai => "assemblyai",
+                TranscriberChoice::Deepgram => "deepgram",
+            };
+            let pc_name = match polisher {
+                PolisherChoice::Claude => "claude",
+                PolisherChoice::Openai => "openai",
+                PolisherChoice::Ollama => "ollama",
+            };
+            validate_settings(&settings, tc_name, pc_name, dry_run);
 
             let urls = parse_batch_file(&file);
             if urls.is_empty() {
@@ -573,19 +670,18 @@ async fn main() {
                 return;
             }
 
-            let fmt_str = fmt.as_str();
             match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo, fmt_str);
+                    dispatch!(batch: transcriber, polisher, repo, settings, urls, dry_run, "markdown", ollama_model);
                 }
                 OutputFormat::Json => {
                     let repo = JsonTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo, fmt_str);
+                    dispatch!(batch: transcriber, polisher, repo, settings, urls, dry_run, "json", ollama_model);
                 }
                 OutputFormat::Srt => {
                     let repo = SrtTranscriptRepository::new(&settings.output_dir);
-                    run_batch!(settings, urls, dry_run, repo, fmt_str);
+                    dispatch!(batch: transcriber, polisher, repo, settings, urls, dry_run, "srt", ollama_model);
                 }
             }
         }
