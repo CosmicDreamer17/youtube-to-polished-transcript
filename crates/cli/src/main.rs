@@ -104,9 +104,9 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
 
-        /// Skip if a transcript for this video already exists
+        /// Overwrite even if a transcript for this video already exists
         #[arg(long)]
-        skip_existing: bool,
+        overwrite: bool,
 
         /// Output format
         #[arg(short, long, value_enum)]
@@ -146,9 +146,9 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
 
-        /// Skip if a transcript for this video already exists
+        /// Overwrite even if a transcript for this video already exists
         #[arg(long)]
-        skip_existing: bool,
+        overwrite: bool,
 
         /// Output format
         #[arg(short, long, value_enum)]
@@ -339,13 +339,13 @@ fn build_manifest_entry(
 /// This macro handles the generic type explosion from the pipeline service.
 macro_rules! run_pipeline {
     ($extractor:expr, $transcriber:expr, $polisher:expr, $repo:expr, $settings:expr,
-     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr, $context:expr, $skip_existing:expr) => {{
+     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr, $context:expr, $overwrite:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
-        if !$dry_run && $skip_existing {
+        if !$dry_run && !$overwrite {
             if let Ok(vid) = VideoSource::new(&$url) {
                 if manifest_repo.exists(&vid.video_id).await {
                     println!(
-                        "{} Transcript for {} already exists in manifest. Skipping.",
+                        "{} Transcript for {} already exists in manifest. Skipping (use --overwrite to force).",
                         style("Skipping:").yellow(),
                         vid.video_id
                     );
@@ -426,7 +426,7 @@ macro_rules! run_pipeline {
 
 macro_rules! run_batch_pipeline {
     ($extractor:expr, $transcriber:expr, $polisher:expr, $repo:expr, $settings:expr,
-     $entries:expr, $dry_run:expr, $fmt_str:expr, $skip_existing:expr) => {{
+     $entries:expr, $dry_run:expr, $fmt_str:expr, $overwrite:expr) => {{
         let manifest_repo = FileManifestRepository::new(&$settings.output_dir);
         let batch_id = Uuid::new_v4().to_string();
         let pipeline = TranscriptPipelineService::new($extractor, $transcriber, $polisher, $repo);
@@ -450,7 +450,7 @@ macro_rules! run_batch_pipeline {
             let prefix = style(format!("[{}/{}]", i + 1, total)).dim();
             let url = &entry.url;
 
-            if !$dry_run && $skip_existing {
+            if !$dry_run && !$overwrite {
                 if let Ok(vid) = VideoSource::new(url) {
                     if manifest_repo.exists(&vid.video_id).await {
                         println!(
@@ -572,19 +572,19 @@ macro_rules! run_batch_pipeline {
 /// macros to generate all the variants without boxing.
 macro_rules! dispatch {
     (transcribe: $ec:expr, $tc:expr, $pc:expr, $repo:expr, $settings:expr,
-     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr, $context:expr, $skip_existing:expr) => {
+     $url:expr, $speakers:expr, $primary:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr, $context:expr, $overwrite:expr) => {
         match ($ec, $tc, $pc) {
             (ExtractorChoice::Ytdlp, TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
                 let e = YtdlpAudioExtractor::new(&$settings.output_dir);
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
             }
             (ExtractorChoice::RustyYtdl, TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
                 let e = RustyYtdlExtractor::new(&$settings.output_dir);
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
             }
             // Add other combinations as needed or use a more nested match
             // For brevity in this implementation, I will use nested matches
@@ -596,37 +596,37 @@ macro_rules! dispatch {
                             (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             _ => unreachable!(),
                         }
@@ -637,37 +637,37 @@ macro_rules! dispatch {
                             (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $skip_existing);
+                                run_pipeline!(e, t, p, $repo, $settings, $url, $speakers, $primary, $dry_run, $fmt_str, $context, $overwrite);
                             }
                             _ => unreachable!(),
                         }
@@ -677,19 +677,19 @@ macro_rules! dispatch {
         }
     };
     (batch: $ec:expr, $tc:expr, $pc:expr, $repo:expr, $settings:expr,
-     $entries:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr, $skip_existing:expr) => {
+     $entries:expr, $dry_run:expr, $fmt_str:expr, $ollama_model:expr, $overwrite:expr) => {
         match ($ec, $tc, $pc) {
             (ExtractorChoice::Ytdlp, TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
                 let e = YtdlpAudioExtractor::new(&$settings.output_dir);
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
             }
             (ExtractorChoice::RustyYtdl, TranscriberChoice::Assemblyai, PolisherChoice::Claude) => {
                 let e = RustyYtdlExtractor::new(&$settings.output_dir);
                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
             }
             (ec, tc, pc) => {
                 match ec {
@@ -699,37 +699,37 @@ macro_rules! dispatch {
                             (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             _ => unreachable!(),
                         }
@@ -740,37 +740,37 @@ macro_rules! dispatch {
                             (TranscriberChoice::Assemblyai, PolisherChoice::Openai) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Gemini) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Assemblyai, PolisherChoice::Ollama) => {
                                 let t = AssemblyAITranscriber::new(&$settings.assemblyai_api_key, None);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Claude) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = ClaudePolisher::new(&$settings.anthropic_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Openai) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OpenAIPolisher::new(&$settings.openai_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Gemini) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = GeminiPolisher::new(&$settings.google_api_key);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             (TranscriberChoice::Deepgram, PolisherChoice::Ollama) => {
                                 let t = DeepgramTranscriber::new(&$settings.deepgram_api_key);
                                 let p = OllamaPolisher::new(&$ollama_model);
-                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $skip_existing);
+                                run_batch_pipeline!(e, t, p, $repo, $settings, $entries, $dry_run, $fmt_str, $overwrite);
                             }
                             _ => unreachable!(),
                         }
@@ -794,7 +794,7 @@ async fn main() {
             output_dir,
             expected_speakers: _,
             dry_run,
-            skip_existing,
+            overwrite,
             format,
             context,
             transcriber,
@@ -824,15 +824,15 @@ async fn main() {
             match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "markdown", ollama_model, context, skip_existing);
+                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "markdown", ollama_model, context, overwrite);
                 }
                 OutputFormat::Json => {
                     let repo = JsonTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "json", ollama_model, context, skip_existing);
+                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "json", ollama_model, context, overwrite);
                 }
                 OutputFormat::Srt => {
                     let repo = SrtTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "srt", ollama_model, context, skip_existing);
+                    dispatch!(transcribe: extractor, transcriber, polisher, repo, settings, url, speakers, primary, dry_run, "srt", ollama_model, context, overwrite);
                 }
             }
         }
@@ -840,7 +840,7 @@ async fn main() {
             file,
             output_dir,
             dry_run,
-            skip_existing,
+            overwrite,
             format,
             context: _,
             transcriber,
@@ -876,15 +876,15 @@ async fn main() {
             match fmt {
                 OutputFormat::Markdown => {
                     let repo = FileTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "markdown", ollama_model, skip_existing);
+                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "markdown", ollama_model, overwrite);
                 }
                 OutputFormat::Json => {
                     let repo = JsonTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "json", ollama_model, skip_existing);
+                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "json", ollama_model, overwrite);
                 }
                 OutputFormat::Srt => {
                     let repo = SrtTranscriptRepository::new(&settings.output_dir);
-                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "srt", ollama_model, skip_existing);
+                    dispatch!(batch: extractor, transcriber, polisher, repo, settings, entries, dry_run, "srt", ollama_model, overwrite);
                 }
             }
         }
